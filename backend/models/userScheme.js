@@ -27,10 +27,36 @@ const userSchema  = new mongoose.Schema({
         type:String,
         required: true,
         minLength: [12, "nic must contain 12"],
-        maxLength: [12, "nic must contain 12"]
-        
-       
+        maxLength: [12, "nic must contain 12"]  
     },
+    dob:{
+        type: Date,
+        required: [true,"DOB is required!"],
+    },
+    gender:{
+        type: String,
+        required: true,
+        enum: ["Male","Female"],
+    },
+    password:{
+        type: String,
+        minLength: [11, "password must contain at least 8 characters!"],
+        required: true,
+        select: false
+    },
+    role:{
+        type: String,
+        required: true,
+        enum: ["Admin","Patient","Doctor"],
+    },
+    doctorDepartment:{
+        type: String,
+
+    },
+    docAvatar:{
+        public_id: String,
+        url: String,
+    }
 
 
 });
