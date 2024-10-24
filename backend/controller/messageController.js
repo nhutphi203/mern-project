@@ -1,4 +1,4 @@
-import mongoose  from "mongoose";
+import { Message } from "../models/messageSchema";
 
 export const sendMessage = async(req,res,next) => {
     const {firstName,lastName,email,phone,message} = req.body;
@@ -8,5 +8,12 @@ export const sendMessage = async(req,res,next) => {
             message: "please fill full form"
         });
     }
+await Message.create({firstName,lastName,email,phone,message});
+res.status(200).json({
+    success: true,
+    message: "Message send successfully",
+});
+
+    
 
 }
