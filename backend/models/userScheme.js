@@ -63,6 +63,11 @@ const userSchema  = new mongoose.Schema({
 });
 
 userSchema.pre("save", async function(next){
+/*.pre("save", ...): This defines a pre-save hook in Mongoose.
+ It allows you to execute some code before the save operation
+  occurs on the document (in this case, the user document).
+   The "save" string specifies that the hook should run 
+   before a document is saved to the database.*/
 if(!this.isModified("password")) {
     next()    
 }    
