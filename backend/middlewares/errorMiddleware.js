@@ -13,4 +13,17 @@ export const errorMiddleware = (err,req ,res,next) => {
         const message = `Duplicate ${object.keys(err.keyValue)} entered`;
         err = new ErrorHandler(message,400);
     }
+    if(err.name === "JsonWebTokenError"){
+        const message = " Json web token is invalid,try again";
+        err = new ErrorHandler(message,400);
+    }
+    if(err.name === "TokenExpiredError"){
+        const message = " Json web token is expired,try again";
+        err = new ErrorHandler(message,400);
+    }
+    if(err.name === "CastError"){
+        const message = " Json web token is invalid,try again";
+        err = new ErrorHandler(message,400);
+    }
+
 }
