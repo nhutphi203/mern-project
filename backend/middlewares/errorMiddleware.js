@@ -6,6 +6,7 @@ class ErrorHandler extends Error{
 }
 
 export const errorMiddleware = (err,req ,res,next) => {
+    // Set a default error message and status code if they don't exist
     err.message = err.message || "internal server error"
     err.statusCode= err.statusCode || 500;
 
