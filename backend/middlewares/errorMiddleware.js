@@ -22,8 +22,12 @@ export const errorMiddleware = (err,req ,res,next) => {
         err = new ErrorHandler(message,400);
     }
     if(err.name === "CastError"){
-        const message = " Json web token is invalid,try again";
+        const message = `invalid ${err.path}`;
         err = new ErrorHandler(message,400);
     }
+    return res.status(err.statusCode).json({
+        success: false,
+        message: err.message,
+    });
 
 }
