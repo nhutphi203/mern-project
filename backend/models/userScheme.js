@@ -84,4 +84,6 @@ userSchema.methods.generateJsonWebToken =function () {
         expiresIn: process.env.JWT_EXPIRES,
     });
 }
+
+
 export const User = mongoose.model("Message", userSchema);
