@@ -11,4 +11,12 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     if(user){
         return next(new ErrorHandler("user already registered",400))
     }
+    user = await User.create({
+        firstName,lastName,email,phone,password,gender,dob,nic,role
+    });
+    res.status(200).json({
+        success: true,
+        message: "user registered",
+        
+    })
 })
