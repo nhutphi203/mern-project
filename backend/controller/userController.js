@@ -19,6 +19,7 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     });
     //if success
     generateToken(user,"user registered",200,res);
+    //finish
     
   
 });
