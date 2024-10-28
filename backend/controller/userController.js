@@ -14,9 +14,10 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     user = await User.create({
         firstName,lastName,email,phone,password,gender,dob,nic,role
     });
+    //if success
     res.status(200).json({
         success: true,
         message: "user registered",
-        
+
     })
 })
