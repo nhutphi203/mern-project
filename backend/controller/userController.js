@@ -11,6 +11,7 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     if(user){
         return next(new ErrorHandler("user already registered",400))
     }
+    //creating model with help userSchema
     user = await User.create({
         firstName,lastName,email,phone,password,gender,dob,nic,role
     });
