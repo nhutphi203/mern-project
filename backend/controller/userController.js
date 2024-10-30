@@ -43,5 +43,9 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if (role !== user.role) {
         return next(new ErrorHandler("user with this role not found",400));
     }
+    res.status(200).json({
+        success: true,
+        message: "user logged in",
+    })
 
 })
