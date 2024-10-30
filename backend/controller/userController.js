@@ -21,4 +21,13 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
         message: "user registered",
 
     })
+});
+
+export const login = catchAsyncErrors(async(req,res,next)=>{
+     const { email,password ,confirmPassword,role} = req.body;
+    if (!email||  !password || !confirmPassword || !role) {
+        return next(new ErrorHandler("please provide all detailes",400))
+    }
+    
+
 })
