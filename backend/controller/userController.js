@@ -28,6 +28,17 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if (!email||  !password || !confirmPassword || !role) {
         return next(new ErrorHandler("please provide all detailes",400))
     }
-    
+    if(password !== confirmPassword){
+        return next(new ErrorHandler("password and confirm password don't match", 400))
+    }
+    const user = await User.findOne({email}).select(+password);
+    if(!user){
+        return next(new ErrorHandler("Invalid password or email"),400)
+
+    }
+    const isPasswordMatched = await user.comparePassword(password);
+    if(!isPasswordMatched){
+        return next(new ErrorHandler("Invalid Password or Email", 400))
+    }
 
 })
