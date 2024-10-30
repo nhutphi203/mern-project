@@ -40,5 +40,8 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if(!isPasswordMatched){
         return next(new ErrorHandler("Invalid Password or Email", 400))
     }
+    if (role !== user.role) {
+        return next(new ErrorHandler("user with this role not found",400));
+    }
 
 })
