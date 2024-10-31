@@ -49,14 +49,14 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
 
 })
 
-const addNewAdmin = catchAsyncErrors(async(req,res,next ) => {
+export const addNewAdmin = catchAsyncErrors(async(req,res,next ) => {
     const{firstName,lastName,email,phone,password,gender,dob,nic} = req.body;
     if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic) {
         return next(new ErrorHandler("please fill full form!", 400));   
     }
     const isRegistered = await User.findOne({email});
     if(isRegistered){
-        return next(new ErrorHandler("Admin with this email already exists!"));
+        return next(new ErrorHandler(`${isRegistered.role} with this email already exists!`));
     }
     const admin = await User.create({firstName,lastName,email,phone,password,gender,dob,nic, role: "Admin"})
 
