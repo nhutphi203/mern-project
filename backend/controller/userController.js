@@ -48,3 +48,11 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     })
 
 })
+
+const addNewAdmin = catchAsyncErrors(async(req,res,next ) => {
+    const{firstName,lastName,email,phone,password,gender,dob,nic} = req.body;
+    if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic) {
+        return next(new ErrorHandler("please fill full form!", 400));   
+    }
+    
+})
