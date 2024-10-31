@@ -17,11 +17,9 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
         firstName,lastName,email,phone,password,gender,dob,nic,role
     });
     //if success
-    res.status(200).json({
-        success: true,
-        message: "user registered",
-
-    })
+    generateToken(User,"user registered",200,res);
+    
+  
 });
 
 export const login = catchAsyncErrors(async(req,res,next)=>{
