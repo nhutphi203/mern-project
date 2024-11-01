@@ -8,7 +8,7 @@ export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic||!role) {
         return next(new ErrorHandler("please fill full form!", 400));   
     }
-    const user= await User.findOne({email});
+    let user= await User.findOne({email});
     if(user){
         return next(new ErrorHandler("user already registered",400))
     }
@@ -30,7 +30,7 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if(password !== confirmPassword){
         return next(new ErrorHandler("password and confirm password don't match", 400))
     }
-    const user = await User.findOne({email}).select(+password);
+    const user = await User.findOne({email}).select('+password +role');
     if(!user){
         return next(new ErrorHandler("Invalid password or email"),400)
 
@@ -42,10 +42,7 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if (role !== user.role) {
         return next(new ErrorHandler("user with this role not found",400));
     }
-    res.status(200).json({
-        success: true,
-        message: "user logged in",
-    })
+    generateToken(user,"user login successfully   ",200,res);
 
 })
 
@@ -60,7 +57,7 @@ export const addNewAdmin = catchAsyncErrors(async(req,res,next ) => {
     }
     const admin = await User.create({firstName,lastName,email,phone,password,gender,dob,nic, role: "Admin"})
 
-    req.status(200).json({
+    res.status(200).json({ 
         success: true,
         message: "New Admin Registered!",
     })
