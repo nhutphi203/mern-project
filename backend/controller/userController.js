@@ -103,5 +103,6 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
     if (!req.files || Object.keys(req.files).length === 0) {
         return next(new ErrorHandler("Doctor Avatar required!",400))
     }
+    const {docAvatar} = req.files;
 })
 
