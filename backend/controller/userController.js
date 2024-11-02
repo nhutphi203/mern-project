@@ -97,5 +97,7 @@ export const logoutPatient = catchAsyncErrors(async(req,res,next) => {
         success: true,
         message: "patient logged out successfully",
     })
-})
+});
+
+export const addNewDoctor = catchAsyncErrors()
 
