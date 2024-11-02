@@ -111,7 +111,7 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
     }
     const {firstName,lastName,email,phone,password,gender,dob,nic,role,doctorDepartment}= req.body;
     if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic||!role||!doctorDepartment) {
-        return next(new ErrorHandler)
+        return next(new ErrorHandler("Please provide full details",400))
     }
 })
 
