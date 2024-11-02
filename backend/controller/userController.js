@@ -114,6 +114,8 @@ export const addNewDoctor = catchAsyncErrors(async (req,res,next) => {
         return next(new ErrorHandler("Please provide full details",400))
     }
     const isRegistered = await  User.findOne({email});
-    
+    if (isRegistered) {
+        return next(new ErrorHandler(`${isRegistered.role} already registered with this email!`,400))
+    }
 })
 
