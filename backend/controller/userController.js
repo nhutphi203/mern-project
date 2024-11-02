@@ -80,8 +80,11 @@ export const getUserDetails = catchAsyncErrors(async(req,res,next) => {
 });
 
 export const logoutAdmin = catchAsyncErrors(async(req,res,next) => {
-    res.status(200).cookie("adminToken").json({
+    res.status(200).cookie("adminToken","",{
+        httpOnly: true,
+        expires: new Date(Date.now()),
+    }).json({
         success: true,
-        message: "user logged out successfully",
+        message: "admin logged out successfully",
     })
 })
