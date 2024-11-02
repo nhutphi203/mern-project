@@ -109,5 +109,6 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
         return next(new ErrorHandler("File Format Not Supported!",400))
         
     }
+    const {}= req.body;
 })
 
