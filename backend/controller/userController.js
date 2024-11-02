@@ -110,5 +110,8 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
         
     }
     const {firstName,lastName,email,phone,password,gender,dob,nic,role,doctorDepartment}= req.body;
+    if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic||!role||!doctorDepartment) {
+        
+    }
 })
 
