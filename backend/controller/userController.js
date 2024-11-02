@@ -2,6 +2,7 @@ import { catchAsyncErrors} from "../middlewares/catchAsyncErrors.js"
 import ErrorHandler from "../middlewares/errorMiddleware.js"
 import {User} from "../models/userScheme.js"; 
 import {generateToken} from "../utils/jwtToken.js"
+import cloudinary from "cloudinary"
 
 export const patientRegister= catchAsyncErrors(async(req,res,next) => {
     const{firstName,lastName,email,phone,password,gender,dob,nic,role} = req.body;
