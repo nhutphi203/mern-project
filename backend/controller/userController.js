@@ -101,7 +101,7 @@ export const logoutPatient = catchAsyncErrors(async(req,res,next) => {
 
 export const addNewDoctor = catchAsyncErrors((req,res,next) => {
     if (!req.files || Object.keys(req.files).length === 0) {
-        return 
+        return next(new ErrorHandler())
     }
 })
 
