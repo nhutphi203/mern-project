@@ -99,7 +99,7 @@ export const logoutPatient = catchAsyncErrors(async(req,res,next) => {
     })
 });
 
-export const addNewDoctor = catchAsyncErrors((req,res,next) => {
+export const addNewDoctor = catchAsyncErrors(async (req,res,next) => {
     if (!req.files || Object.keys(req.files).length === 0) {
         return next(new ErrorHandler("Doctor Avatar required!",400))
     }
@@ -113,5 +113,7 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
     if (!firstName||!lastName||!email||!phone||!password||!gender||!dob||!nic||!role||!doctorDepartment) {
         return next(new ErrorHandler("Please provide full details",400))
     }
+    const isRegistered = await  User.findOne({email});
+    
 })
 
