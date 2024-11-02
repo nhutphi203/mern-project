@@ -105,7 +105,7 @@ export const addNewDoctor = catchAsyncErrors((req,res,next) => {
     }
     const {docAvatar} = req.files;
     const allowedFormats= ["/image/png","/image/jpeg","/image/webP"];
-    if (!allowedFormats.includes) {
+    if (!allowedFormats.includes(docAvatar.mimetype)) {
         
     }
 })
