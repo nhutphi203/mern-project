@@ -43,6 +43,7 @@ export const login = catchAsyncErrors(async(req,res,next)=>{
     if (role !== user.role) {
         return next(new ErrorHandler("user with this role not found",400));
     }
+    //if success
     generateToken(user,"user login successfully   ",200,res);
 
 })
