@@ -124,7 +124,7 @@ export const addNewDoctor = catchAsyncErrors(async (req,res,next) => {
         docAvatar.tempFilePath
     );
     if (!cloudinaryResponse || cloudinaryResponse.error ) {
-        "cloudinary error:",cloudinaryResponse.error || "Unknown cloudinary error"
+        console.error("cloudinary error:",cloudinaryResponse.error || "Unknown cloudinary error")
     }
 })
 
