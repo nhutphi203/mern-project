@@ -132,6 +132,11 @@ export const addNewDoctor = catchAsyncErrors(async (req,res,next) => {
             public_id: cloudinaryResponse.public_id,
             url: cloudinaryResponse.secure_url,
         },
+    });
+    res.status(200).json({
+        success: true,
+        message: "New doctor registered",
+        doctor
     })
 })
 
