@@ -122,6 +122,9 @@ export const addNewDoctor = catchAsyncErrors(async (req,res,next) => {
     }
     const cloudinaryResponse = await cloudinary.uploader.upload(
         docAvatar.tempFilePath
-    )
+    );
+    if (!cloudinaryResponse || cloudinaryResponse.error ) {
+        
+    }
 })
 
