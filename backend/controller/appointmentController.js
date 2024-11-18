@@ -105,4 +105,8 @@ export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
     });
 });
 
+export const deleteAppointment = catchAsyncErrors(async(req,res,next) => {
+    
+})
+
 
