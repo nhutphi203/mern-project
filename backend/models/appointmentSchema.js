@@ -39,14 +39,7 @@ const appointmentSchema  = new mongoose.Schema({
         required: true,
         enum: ["Male","Female"],
     },
-    doctorDepartment:{
-        type: String,
-
-    },
-    docAvatar:{
-        public_id: String,
-        url: String,
-    }
+    
 
 
 });
