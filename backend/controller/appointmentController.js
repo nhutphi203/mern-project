@@ -21,19 +21,19 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
     }= req.body;
 
     if (
-        firstName,
-        lastName,
-        email,
-        phone,
-        nic,
-        dob,
-        gender,
-        appointment_data,
-        department,
-        doctor_firstName,
-        doctor_lastName,
-        hasVisited,
-        address,
+        !firstName ||
+        !lastName ||
+        !email ||
+        !phone ||
+        !nic ||
+        !dob ||
+        !gender ||
+        !appointment_data ||
+        !department ||
+        !doctor_firstName ||
+        !doctor_lastName ||
+        !hasVisited ||
+        !address
     ) {
         
     }
