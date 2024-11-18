@@ -107,6 +107,7 @@ export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
 
 export const deleteAppointment = catchAsyncErrors(async(req,res,next) => {
     const {id} = req.params;
+    let appointment = await Appointment.findById(id);
 })
 
 
