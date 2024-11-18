@@ -73,6 +73,7 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
     });
     res.status(200).json({
         success: true,
-        message: "appointment send successfully"
+        message: "appointment send successfully",
+        appointment,
     })
 })
