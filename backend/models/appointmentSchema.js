@@ -62,6 +62,21 @@ const appointmentSchema = new mongoose.Schema({
   doctorId: {
     type: mongoose.Schema.ObjectId,
     required: true,
+  },
+  patientId: {
+    type: mongoose.Schema.ObjectId,
+    required: true,
+  },
+  address: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["Pending","Accepted","Rejected"],
+    default: "Pending",
   }
 
 });
+
+export
