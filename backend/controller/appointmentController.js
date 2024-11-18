@@ -50,4 +50,26 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
     if (isConflict.length > 1) {
         return next(new ErrorHandler("Doctors Conflict! Please contact through email or Phone",404))
     }
+
+    const doctorId = isConflict[0]._id;
+    const patientId = req.user._id;
+    const appointment = await Appointment.create({
+        firstName,
+        lastName,
+        email,
+        phone,
+        nic,
+        dob,
+        gender,
+        appointment_data,
+        department,
+        dovtor: {
+            firstName: doctor_firstName,
+            lastName: doctor_lastName
+        },
+        hasVisited,
+        address,
+        doctorId,
+        patientId
+    })
 })
