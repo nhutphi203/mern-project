@@ -44,4 +44,7 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
         role: "Doctor",
         doctorDepartment: department
     })
+    if (condition) {
+        
+    }
 })
