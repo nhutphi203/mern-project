@@ -79,4 +79,4 @@ const appointmentSchema = new mongoose.Schema({
 
 });
 
-export
+export const Appointment = mongoose.model("Appointment", appointmentSchema);
