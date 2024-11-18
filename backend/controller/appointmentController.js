@@ -77,3 +77,8 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
         appointment,
     })
 });
+
+export const getAllAppointments = catchAsyncErrors(async(req,res,next) => {
+    const appointments = await Appointment.find();
+    res
+})
