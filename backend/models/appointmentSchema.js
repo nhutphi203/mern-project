@@ -46,5 +46,10 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  
+  doctor: {
+    firstName:{
+        
+    }
+  }
+
 });
