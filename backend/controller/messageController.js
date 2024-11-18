@@ -17,4 +17,8 @@ res.status(200).json({
 
 export const getAllMessages = catchAsyncErrors(async(req,res,next) => {
     const messages= await Message.find();
+    req.status(200).json({
+        success: true,
+        messages,
+    })
 })
