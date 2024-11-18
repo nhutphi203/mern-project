@@ -89,5 +89,5 @@ export const getAllAppointments = catchAsyncErrors(async(req,res,next) => {
 
 export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
     const {id} = req.params;
-    let appointment = await
+    let appointment = await Appointment.findById(id);
 })
