@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.post("/post",isPatientAuthenticated,postAppointment)
 router.get("/getall",isAdminAuthenticated,getAllAppointments)
+router.put("/update/:id",isAdminAuthenticated,getAllAppointments)
 
 export default router;
