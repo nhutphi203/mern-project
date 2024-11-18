@@ -16,5 +16,5 @@ res.status(200).json({
 //finish send message
 
 export const getAllMessages = catchAsyncErrors(async(req,res,next) => {
-    co
+    const messages= await Message.find();
 })
