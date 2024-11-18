@@ -48,8 +48,20 @@ const appointmentSchema = new mongoose.Schema({
   },
   doctor: {
     firstName:{
-        
-    }
+        type: String,
+    required: true,
+    },lastName:{
+        type: String,
+    required: true,
+    },
+  },
+  hasVisited: {
+    type: Boolean,
+    required: true,
+  },
+  doctorId: {
+    type: mongoose.Schema.ObjectId,
+    required: true,
   }
 
 });
