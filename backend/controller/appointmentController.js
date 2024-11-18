@@ -84,4 +84,9 @@ export const getAllAppointments = catchAsyncErrors(async(req,res,next) => {
         success: true,
         appointments,
     })
+
+})
+
+export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
+    const {id} = req.params;
 })
