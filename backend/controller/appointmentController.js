@@ -98,4 +98,8 @@ export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
         runValidators: true,
         useFindAndModify: false,
     });
+    res.status(200).json({
+        success: true,
+        appointment,
+    })
 })
