@@ -81,6 +81,7 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
 export const getAllAppointments = catchAsyncErrors(async(req,res,next) => {
     const appointments = await Appointment.find();
     res.status(200).json({
-        
+        success: true,
+        appointments,
     })
 })
