@@ -39,17 +39,6 @@ const appointmentSchema  = new mongoose.Schema({
         required: true,
         enum: ["Male","Female"],
     },
-    password:{
-        type: String,
-        minLength: [8, "password must contain at least 8 characters!"],
-        required: true,
-        select: false,
-    },
-    role:{
-        type: String,
-        required: true,
-        enum: ["Admin","Patient","Doctor"],
-    },
     doctorDepartment:{
         type: String,
 
