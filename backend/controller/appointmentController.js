@@ -76,4 +76,4 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
         message: "appointment send successfully",
         appointment,
     })
-})
+});
