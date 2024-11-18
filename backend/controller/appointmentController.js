@@ -111,6 +111,11 @@ export const deleteAppointment = catchAsyncErrors(async(req,res,next) => {
     if (!appointment) {
         return next(new ErrorHandler("Appointment not found",404));
     }
+    await appointment.deleteOne();
+    res.status(200).json({
+        success: true,
+        message: "Appointment deleted!"
+    })
 })
 
 
