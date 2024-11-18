@@ -95,6 +95,7 @@ export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
     }
     appointment = await Appointment.findByIdAndUpdate(id,req.body, {
         new: true,
-        
-    })
+        runValidators: true,
+        useFindAndModify: false,
+    });
 })
