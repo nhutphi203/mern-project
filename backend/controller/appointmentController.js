@@ -103,4 +103,6 @@ export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next) => {
         message: "Appointment status updated",
         appointment,
     });
-})
+});
+
+
