@@ -71,7 +71,7 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
         doctorId,
         patientId
     });
-    res.status.json({
+    res.status(200).json({
         success: true,
         message: "appointment send successfully"
     })
