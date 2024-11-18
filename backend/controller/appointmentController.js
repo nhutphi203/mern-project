@@ -45,6 +45,9 @@ export const postAppointment = catchAsyncErrors(async(req,res,next) => {
         doctorDepartment: department
     })
     if (isConflict.length === 0) {
-        return next(new ErrorHandler("Doctor not found"))
+        return next(new ErrorHandler("Doctor not found",404))
+    }
+    if (isConflict.length > 1) {
+        return next(new ErrorHandler("Doctors Conflict! Please contact through email or Phone",404))
     }
 })
