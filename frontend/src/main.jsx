@@ -5,7 +5,7 @@ import App from './App.jsx'
 
 
 const AppWrapper = () =>{
-  const [isAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const[] = useState()
 }
 
