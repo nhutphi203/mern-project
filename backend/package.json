@@ -12,14 +12,15 @@
   "description": "",
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "cloudinary": "^2.5.1",
+    "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "express": "^4.21.1",
-    "express-fileupload": "^1.5.1",
+    "express-fileupload": "^1.5.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.7.2",
+    "mongodb": "^6.18.0",
+    "mongoose": "^8.17.0",
     "validator": "^13.12.0"
   }
 }
