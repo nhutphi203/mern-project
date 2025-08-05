@@ -1,50 +1,43 @@
-// src/components/ProtectedRoute.tsx
+// src/auth/ProtectedRoute.tsx
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useCurrentUser } from '@/hooks/useAuth';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useCurrentUser } from '@/hooks/useAuth'; // Import hook của bạn
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
-    requiredRole?: 'admin' | 'patient';
-    redirectTo?: string;
+    allowedRoles?: string[]; // Thêm tùy chọn để giới hạn vai trò nếu cần
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-    children,
-    requiredRole,
-    redirectTo = '/login'
-}) => {
-    const { data: currentUser, isLoading, error } = useCurrentUser(requiredRole);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
+    // --- SỬA LẠI DÒNG NÀY ---
+    // Lấy `data` từ hook và đổi tên nó thành `currentUserData` cho dễ hiểu
+    const { data: currentUserData, isLoading, isError } = useCurrentUser();
 
-    // Show loading spinner while checking authentication
+    // TRƯỜNG HỢP 1: Đang tải dữ liệu người dùng
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center space-y-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-muted-foreground">Checking authentication...</p>
-                </div>
+            <div className="flex justify-center items-center h-screen">
+                <div>Loading authentication...</div>
             </div>
         );
     }
 
-    // If there's an error or no user data, redirect to login
-    if (error || !currentUser?.user) {
-        return <Navigate to={redirectTo} replace />;
+    // TRƯỜNG HỢP 2: Lỗi hoặc không có user sau khi đã tải xong
+    // Kiểm tra `currentUserData` và `currentUserData.user`
+    if (isError || !currentUserData?.user) {
+        return <Navigate to="/login" replace />;
     }
 
-    // Check if user has required role
-    if (requiredRole) {
-        const userRole = currentUser.user.role.toLowerCase();
-        if (userRole !== requiredRole) {
-            // Redirect admin to admin dashboard, patient to patient dashboard
-            const redirectPath = userRole === 'admin' ? '/admin' : '/dashboard';
-            return <Navigate to={redirectPath} replace />;
-        }
+    // TRƯỜNG HỢP 3 (Nâng cao): Kiểm tra vai trò (role)
+    // Lấy role từ `currentUserData.user.role`
+    const userRole = currentUserData.user.role;
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
+        // Có thể chuyển hướng về trang "Không có quyền" hoặc trang chủ
+        return <Navigate to="/" replace />;
     }
 
-    // User is authenticated and has correct role, render children
-    return <>{children}</>;
+    // TRƯỜNG HỢP 4: Tất cả đều ổn
+    // Hiển thị component con (trang được bảo vệ)
+    return <Outlet />;
 };
 
 export default ProtectedRoute;

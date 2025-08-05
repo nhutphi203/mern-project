@@ -28,17 +28,17 @@ import {
 } from "@/components/ui/avatar";
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { data: currentUser } = useCurrentUser('patient');
+    const { data: currentUser } = useCurrentUser();
     const isAuthenticated = !!currentUser?.user;
     const user = currentUser?.user;
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : "G";
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logoutMutation } = useAuth();
 
     const handleLogout = () => {
         if (user?.role) {
-            logout(user.role); // <-- Gọi hàm logout chung
+            logoutMutation(); // <-- Gọi hàm logout chung
             navigate('/');
         }
     };
