@@ -33,13 +33,6 @@ const Register = () => {
         role: 'Patient',
     });
 
-    // Check if user is already logged in
-    const { data: currentUser } = useCurrentUser('patient');
-
-    if (currentUser?.user) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -66,7 +59,9 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted/30 via-background to-muted/30 p-4">
+        <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center"
+            // Sử dụng ảnh nền chuyên nghiệp từ Unsplash
+            style={{ backgroundImage: "url('/images/hero-hospital.jpg')" }}>
             <Card className="w-full max-w-2xl shadow-lg">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 h-12 w-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
