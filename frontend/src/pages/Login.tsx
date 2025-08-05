@@ -50,8 +50,12 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted/30 via-background to-muted/30 p-4">
-            <Card className="w-full max-w-md shadow-lg">
+        <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center"
+            // Sử dụng ảnh nền chuyên nghiệp từ Unsplash
+            style={{ backgroundImage: "url('/images/hero-hospital.jpg')" }}
+
+        >
+            <Card className="backdrop-blur-sm w-full max-w-md shadow-lg">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 h-12 w-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                         <User className="h-6 w-6 text-white" />

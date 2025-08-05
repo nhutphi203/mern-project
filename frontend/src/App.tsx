@@ -1,70 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+// ❌ Dòng này KHÔNG được import 'BrowserRouter as Router'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useCurrentUser } from './hooks/useAuth';
 
-// --- Giả lập các component cần thiết cho ví dụ này ---
+// ✅ BƯỚC 1: Import Layout và các trang
+import Layout from './components/layout/Layout';
+// import Home from './pages/Home'; // Xóa trang Home không còn sử dụng
+import AboutPage from './pages/About';
+import ServicesPage from './pages/Services';
+import DoctorsPage from './pages/Doctors';
+
+// Import các trang đã có
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import BookAppointment from './pages/BookAppointment';
 import AdminDashboard from './pages/AdminDashboard';
 import Contact from './pages/Contact';
+import BookAppointment from './pages/BookAppointment';
 
-// --- Cấu hình API giả lập và hàm ping ---
-// Thay thế dòng này bằng URL API thực của bạn trong file .env
-const API_BASE_URL = 'http://localhost:4000';
+// Component này chứa logic điều hướng và các Routes
+const AppContent = () => {
+  // Logic này đã đúng, không cần thay đổi
+  const { data: patientUser, isSuccess: isPatientSuccess } = useCurrentUser('patient');
+  const { data: adminUser, isSuccess: isAdminSuccess } = useCurrentUser('admin');
 
-/**
- * @description Hàm giả lập `fetch` để kiểm tra kết nối API.
- * Trong ứng dụng thực, bạn sẽ sử dụng `axios` hoặc `fetch` để gửi yêu cầu HTTP.
- * @returns {Promise<Response>}
- */
-const mockPingServer = async () => {
-  // Mặc dù chúng ta đang giả lập, nhưng việc sử dụng `fetch` vẫn là cách đúng
-  // để kiểm tra kết nối thực tế trong trình duyệt.
-  const url = `${API_BASE_URL}/ping`;
-  return fetch(url);
-};
+  const currentUser = patientUser || adminUser;
+  const isSuccess = (patientUser && isPatientSuccess) || (adminUser && isAdminSuccess);
 
-// --- Component chính của ứng dụng ---
-const App = () => {
-  const [isApiConnected, setIsApiConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Trong ví dụ này, chúng ta sẽ bỏ qua logic kiểm tra API để đơn giản hóa.
-    // Nếu bạn muốn hiển thị màn hình loading trong lúc chờ kết nối, bạn có thể thêm lại logic ở đây.
-    setIsLoading(false);
-  }, []);
+    // Log để kiểm tra
+    console.log("APP EFFECT:", { currentUser, isSuccess, pathname: location.pathname });
 
-  // Nếu bạn muốn hiển thị màn hình loading, bạn có thể thêm điều kiện ở đây.
-  // if (isLoading) {
-  //   return <div>Đang tải ứng dụng...</div>;
-  // }
+    if (isSuccess && currentUser) {
+      // ✅ SỬA ĐỔI: Sau khi đăng nhập, bệnh nhân sẽ được chuyển đến trang chủ ('/')
+      const targetPath = currentUser.user.role === 'Admin' ? '/admin-dashboard' : '/';
+      if (location.pathname === '/login' || location.pathname === '/register') {
+        console.log(`Navigating to ${targetPath}...`);
+        navigate(targetPath, { replace: true });
+      }
+    }
+  }, [currentUser, isSuccess, navigate, location.pathname]);
 
-  // Cấu trúc Router mới, hiển thị trang Login đầu tiên.
   return (
-    <div className="bg-gray-100 min-h-screen font-sans">
-      <Router>
-        <Routes>
-          {/* Định nghĩa các route công khai trước */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/contact" element={<Contact />} />
+    // ✅ BƯỚC 2: Cấu trúc lại Routes
+    <Routes>
+      {/* Trang chủ của ứng dụng là Dashboard (yêu cầu đăng nhập) */}
+      <Route path="/" element={<Dashboard />} />
 
-          {/* Các route yêu cầu đăng nhập sẽ được thêm sau */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/book-appointment" element={<BookAppointment />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      {/* Các trang công khai sử dụng Layout chung (có Navbar và Footer) */}
+      <Route path="/about" element={<Layout><AboutPage /></Layout>} />
+      <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
+      <Route path="/doctors" element={<Layout><DoctorsPage /></Layout>} />
+      <Route path="/contact" element={<Layout><Contact /></Layout>} />
 
-          {/* Chuyển hướng mặc định từ '/' đến '/login' */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Các trang đăng nhập/đăng ký không có Layout chung */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-          {/* Thêm một trang Not Found nếu cần */}
-          <Route path="*" element={<div className="text-center p-8">404 - Trang không tồn tại</div>} />
-        </Routes>
-      </Router>
-    </div>
+      {/* Các trang yêu cầu đăng nhập khác */}
+      {/* Route /dashboard giờ có thể xóa hoặc trỏ về trang chủ */}
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="/book-appointment" element={<BookAppointment />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+      {/* Route cho trang không tồn tại */}
+      <Route path="*" element={<Layout><div>404 - Page Not Found</div></Layout>} />
+    </Routes>
   );
+};
+
+
+// Component App giờ chỉ cần trả về AppContent
+const App = () => {
+  return <AppContent />;
 };
 
 export default App;
