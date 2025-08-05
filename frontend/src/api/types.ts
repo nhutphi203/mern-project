@@ -16,7 +16,10 @@ export interface User {
         url: string;
     };
 }
-
+export interface MessageResponse {
+    success: boolean;
+    message: string;
+}
 export interface LoginRequest {
     email: string;
     password: string;
@@ -88,4 +91,49 @@ export interface MessageRequest {
     email: string;
     phone: string;
     message: string;
+}
+
+export interface MedicalRecord {
+    _id: string;
+    diagnosedDate: string;
+    condition: string;
+    notes: string;
+    doctor: string; // ID của bác sĩ
+}
+
+export interface MedicalHistoryEntry {
+    _id: string;
+    condition: string;
+    diagnosedDate?: string;
+    treatment?: string;
+    notes?: string;
+    doctor?: string; // Sẽ là ID, hoặc object nếu populate
+}
+
+export interface EmergencyContact {
+    name: string;
+    relationship: string;
+    phone: string;
+}
+
+export interface Immunization {
+    _id: string;
+    vaccineName: string;
+    dateReceived: string;
+}
+
+export interface PatientProfileData {
+    _id: string;
+    patient: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+    };
+    bloodType?: string;
+    allergies: string[];
+    medicalHistory: MedicalHistoryEntry[]; // Dùng interface mới
+    immunizations: Immunization[];
+    emergencyContact?: EmergencyContact;
+    createdAt: string;
+    updatedAt: string;
 }

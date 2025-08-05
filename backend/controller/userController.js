@@ -4,6 +4,27 @@ import { User } from "../models/userScheme.js";
 import { generateToken } from "../utils/jwtToken.js";
 import cloudinary from "cloudinary";
 
+export const logout = catchAsyncErrors(async (req, res, next) => {
+    // Middleware đã xác thực và gắn req.user, nên ta biết được vai trò
+    const userRole = req.user.role;
+
+    // Xác định tên cookie dựa trên vai trò
+    const cookieName = userRole === 'Admin' ? 'adminToken' : 'patientToken';
+
+    res
+        .status(200)
+        .cookie(cookieName, "", {
+            httpOnly: true,
+            expires: new Date(Date.now()),
+            // Thêm các tùy chọn secure và sameSite cho môi trường production
+            // secure: true,
+            // sameSite: "None",
+        })
+        .json({
+            success: true,
+            message: "User Logged Out Successfully!",
+        });
+});
 export const patientRegister = catchAsyncErrors(async (req, res, next) => {
     const { firstName, lastName, email, phone, password, gender, dob, nic, role } = req.body;
     if (!firstName || !lastName || !email || !phone || !password || !gender || !dob || !nic || !role) {
@@ -88,25 +109,6 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     })
 });
 
-export const logoutAdmin = catchAsyncErrors(async (req, res, next) => {
-    res.status(200).cookie("adminToken", "", {
-        httpOnly: true,
-        expires: new Date(Date.now()),
-    }).json({
-        success: true,
-        message: "admin logged out successfully",
-    })
-});
-
-export const logoutPatient = catchAsyncErrors(async (req, res, next) => {
-    res.status(200).cookie("patientToken", "", {
-        httpOnly: true,
-        expires: new Date(Date.now()),
-    }).json({
-        success: true,
-        message: "patient logged out successfully",
-    })
-});
 
 export const addNewDoctor = catchAsyncErrors(async (req, res, next) => {
     if (!req.files || Object.keys(req.files).length === 0) {

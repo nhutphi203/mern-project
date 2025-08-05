@@ -1,11 +1,11 @@
 
 // src/pages/Dashboard.tsx
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, User, LogOut, Phone, Mail } from 'lucide-react';
+import { Calendar, Clock, User, LogOut, Phone, Mail, Loader2 } from 'lucide-react';
 import { useCurrentUser, useAuth } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
 import Header from '@/components/layout/Header';
@@ -20,8 +20,11 @@ import {
 } from "@/components/ui/tooltip";
 import { PersonStanding, Cake } from 'lucide-react'; // Icon mới cho Giới tính và Ngày sinh
 const Dashboard = () => {
-    const { data: currentUser, isLoading } = useCurrentUser('patient');
-    const { logoutPatient } = useAuth();
+    const { data: currentUser, isLoading } = useCurrentUser();
+    const { logoutMutation, isLogouting } = useAuth();
+
+    const navigate = useNavigate(); // Khởi tạo hook navigate
+
     const {
         appointments,
         isLoading: appointmentsLoading,
@@ -43,6 +46,7 @@ const Dashboard = () => {
 
     const user = currentUser.user;
     const userAppointments = appointments?.filter(apt => apt.patientId === user._id) || [];
+    console.log("USER OBJECT ON DASHBOARD:", user);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -69,10 +73,7 @@ const Dashboard = () => {
                                     Manage your appointments and health records
                                 </p>
                             </div>
-                            <Button variant="outline" onClick={() => logoutPatient()}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                Logout
-                            </Button>
+
                         </div>
                     </div>
 
@@ -157,10 +158,10 @@ const Dashboard = () => {
                                             </Tooltip>
                                         </div>
                                     </TooltipProvider>
-
-                                    <Button className="w-full mt-6" variant="outline">
-                                        Edit Profile
+                                    <Button className="w-full mt-6" variant="outline" onClick={() => window.location.href = `/patient-profile/${user._id}`}>
+                                        View Full Patient Profile
                                     </Button>
+
                                 </CardContent>
                             </Card>
                         </div>

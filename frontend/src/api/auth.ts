@@ -1,7 +1,7 @@
 // src/api/auth.ts
 
 import { apiRequest } from './config';
-import type { User, LoginRequest, RegisterRequest } from './types';
+import type { User, LoginRequest, RegisterRequest, MessageRequest } from './types';
 
 export const authApi = {
     // Đăng ký Patient
@@ -22,23 +22,12 @@ export const authApi = {
         });
     },
 
-    // Lấy thông tin người dùng hiện tại
-    getUserDetails: async (role: 'admin' | 'patient') => {
-        // Thêm /api/v1/
-        return apiRequest<{ user: User }>(`/api/v1/user/${role}/me`);
+    getUserDetails: async () => {
+        return apiRequest<{ user: User }>(`/api/v1/user/me`); // Gọi đến endpoint mới
     },
-
-    // Đăng xuất
-    logoutAdmin: async () => {
-        // Thêm /api/v1/
-        return apiRequest('/api/v1/user/admin/logout');
+    logout: async () => {
+        return apiRequest<MessageResponse>('/api/v1/user/logout'); // Gọi đến endpoint mới
     },
-
-    logoutPatient: async () => {
-        // Thêm /api/v1/
-        return apiRequest('/api/v1/user/patient/logout');
-    },
-
     // Thêm Admin mới
     addNewAdmin: async (data: Omit<RegisterRequest, 'role'>) => {
         // Thêm /api/v1/

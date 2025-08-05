@@ -7,6 +7,7 @@ const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
     // Gửi cookie và token cùng với request
     withCredentials: true,
+
 });
 
 export default api;

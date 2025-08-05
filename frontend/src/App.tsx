@@ -17,12 +17,13 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Contact from './pages/Contact';
 import BookAppointment from './pages/BookAppointment';
+import PatientProfilePage from './pages/PatientProfile';
 
 // Component này chứa logic điều hướng và các Routes
 const AppContent = () => {
   // Logic này đã đúng, không cần thay đổi
-  const { data: patientUser, isSuccess: isPatientSuccess } = useCurrentUser('patient');
-  const { data: adminUser, isSuccess: isAdminSuccess } = useCurrentUser('admin');
+  const { data: patientUser, isSuccess: isPatientSuccess } = useCurrentUser();
+  const { data: adminUser, isSuccess: isAdminSuccess } = useCurrentUser();
 
   const currentUser = patientUser || adminUser;
   const isSuccess = (patientUser && isPatientSuccess) || (adminUser && isAdminSuccess);
@@ -65,6 +66,7 @@ const AppContent = () => {
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/book-appointment" element={<BookAppointment />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/patient-profile/:patientId" element={<PatientProfilePage />} />
 
       {/* Route cho trang không tồn tại */}
       <Route path="*" element={<Layout><div>404 - Page Not Found</div></Layout>} />

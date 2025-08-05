@@ -6,45 +6,44 @@ import type { LoginRequest, RegisterRequest, User } from '@/api/types';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/api/config';
 import { useNavigate } from 'react-router-dom';
-
+type UserDetailsResponse = {
+    user: User;
+};
 export const useAuth = () => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const navigate = useNavigate();
 
 
-    // --- LOGIN MUTATION (ĐÃ THÊM LOG) ---
+
     const loginMutation = useMutation({
         mutationFn: authApi.login,
 
-        // 1. Log ngay khi mutation được gọi
-        onMutate: (variables) => {
-            console.log("LOGIN ATTEMPT: Đang thử đăng nhập với dữ liệu:", variables);
-        },
-
-        // 2. Log khi mutation thành công
+        // --- SỬA LẠI HOÀN TOÀN HÀM ONSUCCESS ---
         onSuccess: (data) => {
-            console.log("LOGIN SUCCESS: API trả về dữ liệu thành công:", data);
+            console.log("LOGIN SUCCESS: API data received:", data);
 
-            // ✅ SỬA LỖI TẠI ĐÂY: Chuẩn hóa 'role' về chữ thường trước khi set cache
-            const role = data.user.role.toLowerCase() as 'admin' | 'patient';
-            queryClient.setQueryData(['user', role], data); // Giờ đây key sẽ là ['user', 'patient']
+            // Cập nhật cache cho ĐÚNG key là ['currentUser']
+            // mà hook useCurrentUser đang sử dụng.
+            queryClient.setQueryData(['currentUser'], data);
 
             toast({
                 title: 'Login Successful',
                 description: `Welcome back, ${data.user.firstName}!`,
             });
+
+            // Tự động điều hướng sau khi đăng nhập thành công
+            if (data.user.role === 'Admin') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/dashboard');
+            }
         },
-
-        // 3. Log khi mutation thất bại
         onError: (error: ApiError) => {
-            console.error("LOGIN FAILED: API trả về lỗi:", error);
-
-            // ✅ SỬA LỖI Ở ĐÂY: Dùng error.message trực tiếp vì ApiError không có thuộc tính 'response'
-            const message = error.message || 'An unexpected error occurred.';
+            console.error("LOGIN FAILED: API error:", error);
             toast({
                 title: 'Login Failed',
-                description: message,
+                description: error.message || 'An unexpected error occurred.',
                 variant: 'destructive',
             });
         },
@@ -72,50 +71,36 @@ export const useAuth = () => {
         },
     });
 
-    // Giữ nguyên logic logout của bạn
-    const logoutAdminMutation = useMutation({
-        mutationFn: authApi.logoutAdmin,
-        onSuccess: () => {
-            queryClient.removeQueries({ queryKey: ['user', 'admin'] }); // Xóa đúng key
-            toast({ title: "Logged Out Successfully" });
+    const logoutMutation = useMutation({
+        mutationFn: authApi.logout, // Gọi đến hàm logout duy nhất
+        onSuccess: (data) => {
+            toast({ title: "Logout Successful", description: data.message });
+            // Xóa cache của user
+            queryClient.removeQueries({ queryKey: ['currentUser'] });
+            // Điều hướng về trang login
+            navigate('/login');
+        },
+        onError: (error: ApiError) => {
+            // Xử lý khi logout lỗi (ví dụ: token đã hết hạn)
+            toast({ title: "Logout Failed", description: error.message, variant: 'destructive' });
+            // Vẫn xóa cache và điều hướng về login để đảm bảo an toàn
+            queryClient.removeQueries({ queryKey: ['currentUser'] });
+            navigate('/login');
         },
     });
-
-    const logoutPatientMutation = useMutation({
-        mutationFn: authApi.logoutPatient,
-        onSuccess: () => {
-            queryClient.removeQueries({ queryKey: ['user', 'patient'] }); // Xóa đúng key
-            toast({ title: "Logged Out Successfully" });
-        },
-    });
-
-    const logout = (role: 'Admin' | 'Patient' | 'Doctor') => {
-        if (role === 'Admin') {
-            logoutAdminMutation.mutate();
-        } else {
-            logoutPatientMutation.mutate();
-        }
-    };
-
     return {
         register: registerMutation.mutate,
         isRegistering: registerMutation.isPending,
         login: loginMutation.mutate,
         isLoggingIn: loginMutation.isPending,
-        logout,
-        isLoggingOut: logoutAdminMutation.isPending || logoutPatientMutation.isPending,
-        logoutAdmin: logoutAdminMutation.mutate,
-        logoutPatient: logoutPatientMutation.mutate,
+        logoutMutation: logoutMutation.mutate,
+        isLogouting: logoutMutation.isPending,
     };
 };
-
-// Giữ nguyên logic useCurrentUser của bạn
-export const useCurrentUser = (role?: 'admin' | 'patient') => {
-    return useQuery({
-        queryKey: ['user', role],
-        // ✅ SỬA LỖI Ở ĐÂY: Truyền 'role' vào hàm getUserDetails
-        queryFn: () => (role ? authApi.getUserDetails(role) : Promise.resolve(null)),
-        enabled: !!role,
+export const useCurrentUser = () => {
+    return useQuery<{ user: User }, Error>({
+        queryKey: ['currentUser'], // Chỉ cần 1 key duy nhất
+        queryFn: authApi.getUserDetails, // Gọi hàm không cần tham số
         retry: false,
         refetchOnWindowFocus: false,
     });
