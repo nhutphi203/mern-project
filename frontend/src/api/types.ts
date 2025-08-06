@@ -8,14 +8,17 @@ export interface User {
     phone: string;
     nic: string;
     dob: string;
-    gender: 'Male' | 'Female'; // Cho phép cả 'Other'
+    gender: 'Male' | 'Female' | 'Other';
     role: 'Admin' | 'Patient' | 'Doctor';
     doctorDepartment?: string;
+    specialization?: string; // Thêm field mới
+    licenseNumber?: string; // Thêm field mới
     docAvatar?: {
         public_id: string;
         url: string;
     };
 }
+
 export interface MessageResponse {
     success: boolean;
     message: string;
@@ -59,12 +62,34 @@ export interface Appointment {
         lastName: string;
     };
     hasVisited: boolean;
-    doctorId: string;
-    patientId: string;
+    doctorId: string | PopulatedDoctor; // Có thể là string hoặc object sau populate
+    patientId: string | PopulatedPatient; // Có thể là string hoặc object sau populate
     address: string;
     status: 'Pending' | 'Accepted' | 'Rejected';
+    createdAt: string;
+    updatedAt: string;
 }
-
+export interface PopulatedDoctor {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    doctorDepartment: string;
+    specialization?: string;
+    docAvatar?: {
+        public_id: string;
+        url: string;
+    };
+}
+export interface PopulatedPatient {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    nic: string;
+    dob: string;
+    gender: 'Male' | 'Female' | 'Other';
+}
 export interface AppointmentRequest {
     firstName: string;
     lastName: string;
@@ -143,4 +168,22 @@ export interface PatientProfileData {
     emergencyContact?: EmergencyContact;
     createdAt: string;
     updatedAt: string;
+}
+export interface PopulatedAppointment extends Omit<Appointment, 'doctorId' | 'patientId'> {
+    doctorId: PopulatedDoctor;
+    patientId: PopulatedPatient;
+}
+
+export interface AppointmentFilter {
+    department?: string;
+    doctorId?: string;
+    status?: 'Pending' | 'Accepted' | 'Rejected';
+    startDate?: string;
+    endDate?: string;
+}
+
+// Thống kê appointments
+export interface AppointmentStats {
+    byStatus: Array<{ _id: string; count: number }>;
+    byDepartment: Array<{ _id: string; count: number }>;
 }

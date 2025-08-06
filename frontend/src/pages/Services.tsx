@@ -13,7 +13,7 @@ interface Service {
     imageUrl: string;
 }
 
-const ServicesPage = () => {
+const Services = () => {
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ const ServicesPage = () => {
                 </CardHeader>
                 <CardContent>
                     <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-2/3" />
                 </CardContent>
                 <CardFooter>
                     <Skeleton className="h-10 w-full" />
@@ -52,7 +52,6 @@ const ServicesPage = () => {
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-12">
-                <h1 className="text-4xl font-extrabold text-center mb-10 text-emerald-800">Dịch vụ của chúng tôi</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {renderSkeletons()}
                 </div>
@@ -60,20 +59,17 @@ const ServicesPage = () => {
         );
     }
 
-    if (services.length === 0) {
-        return <div className="text-center py-20">Chưa có dịch vụ nào.</div>;
-    }
-
     return (
-        <div className="bg-gray-50">
+        // Sửa lỗi: Bỏ class `bg-gray-50` để component nhận màu nền từ Layout cha
+        <div className="bg-background text-foreground">
             <div className="container mx-auto px-4 py-12">
-                <h1 className="text-4xl font-extrabold text-center mb-10 text-emerald-800">Dịch vụ của chúng tôi</h1>
+                <h1 className="text-4xl font-extrabold text-center mb-10 text-emerald-800 dark:text-emerald-300">Dịch vụ của chúng tôi</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {services.map(service => (
                         <Card key={service.id} className="flex flex-col hover:shadow-xl transition-shadow duration-300">
                             <img src={service.imageUrl} alt={service.name} className="w-full h-48 object-cover" />
                             <CardHeader>
-                                <CardTitle className="text-emerald-700">{service.name}</CardTitle>
+                                <CardTitle className="text-emerald-700 dark:text-emerald-400">{service.name}</CardTitle>
                             </CardHeader>
                             <CardContent className="flex-grow">
                                 <p className="text-muted-foreground">{service.description}</p>
@@ -91,4 +87,4 @@ const ServicesPage = () => {
     );
 };
 
-export default ServicesPage;
+export default Services;

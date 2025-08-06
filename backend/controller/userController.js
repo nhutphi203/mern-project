@@ -107,6 +107,7 @@ export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
+    // Tìm tất cả user có role là "Doctor"
     const doctors = await User.find({ role: "Doctor" });
     res.status(200).json({
         success: true,

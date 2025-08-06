@@ -78,18 +78,6 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     })
 });
 
-export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
-    // Populate thông tin bệnh nhân và bác sĩ để hiển thị tên
-    const appointments = await Appointment.find()
-        .populate('patientId', 'firstName lastName email phone')
-        .populate('doctorId', 'firstName lastName doctorDepartment');
-
-    res.status(200).json({
-        success: true,
-        appointments,
-    })
-})
-
 export const updateAppointmentStatus = catchAsyncErrors(async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -130,12 +118,12 @@ export const deleteAppointment = catchAsyncErrors(async (req, res, next) => {
     })
 })
 
-// Thêm controller để bệnh nhân lấy lịch hẹn của chính mình
-export const getMyAppointments = catchAsyncErrors(async (req, res, next) => {
-    const patientId = req.user._id;
 
-    const appointments = await Appointment.find({ patientId })
-        .populate('doctorId', 'firstName lastName doctorDepartment')
+export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
+    // Populate thông tin bệnh nhân và bác sĩ với nhiều field hơn
+    const appointments = await Appointment.find()
+        .populate('patientId', 'firstName lastName email phone nic dob gender')
+        .populate('doctorId', 'firstName lastName doctorDepartment specialization docAvatar')
         .sort({ createdAt: -1 }); // Sắp xếp mới nhất trước
 
     res.status(200).json({
@@ -144,12 +132,24 @@ export const getMyAppointments = catchAsyncErrors(async (req, res, next) => {
     })
 })
 
-// Thêm controller để bác sĩ lấy lịch hẹn được gán cho mình
+export const getMyAppointments = catchAsyncErrors(async (req, res, next) => {
+    // req.user.id được lấy từ middleware isPatientAuthenticated
+    const appointments = await Appointment.find({ patientId: req.user.id })
+        .populate('doctorId', 'firstName lastName doctorDepartment docAvatar') // Lấy thông tin bác sĩ
+        .populate('patientId', 'firstName lastName email phone') // Lấy thông tin bệnh nhân (tùy chọn)
+        .sort({ appointment_date: -1 }); // Sắp xếp mới nhất lên đầu
+
+    res.status(200).json({
+        success: true,
+        count: appointments.length,
+        appointments,
+    });
+});
 export const getDoctorAppointments = catchAsyncErrors(async (req, res, next) => {
     const doctorId = req.user._id;
 
     const appointments = await Appointment.find({ doctorId })
-        .populate('patientId', 'firstName lastName email phone')
+        .populate('patientId', 'firstName lastName email phone nic dob gender')
         .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -157,3 +157,65 @@ export const getDoctorAppointments = catchAsyncErrors(async (req, res, next) => 
         appointments,
     })
 })
+
+// Thêm API endpoint mới để lấy appointments với filter linh hoạt
+export const getAppointmentsByFilter = catchAsyncErrors(async (req, res, next) => {
+    const { department, doctorId, status, startDate, endDate } = req.query;
+
+    // Xây dựng filter object
+    let filter = {};
+
+    if (department) filter.department = department;
+    if (doctorId) filter.doctorId = doctorId;
+    if (status) filter.status = status;
+
+    // Filter theo ngày nếu có
+    if (startDate || endDate) {
+        filter.appointment_date = {};
+        if (startDate) filter.appointment_date.$gte = startDate;
+        if (endDate) filter.appointment_date.$lte = endDate;
+    }
+
+    const appointments = await Appointment.find(filter)
+        .populate('patientId', 'firstName lastName email phone')
+        .populate('doctorId', 'firstName lastName doctorDepartment specialization docAvatar')
+        .sort({ appointment_date: 1 }); // Sắp xếp theo ngày hẹn
+
+    res.status(200).json({
+        success: true,
+        count: appointments.length,
+        appointments,
+    })
+})
+
+// Thêm API để lấy thống kê appointments
+export const getAppointmentStats = catchAsyncErrors(async (req, res, next) => {
+    const stats = await Appointment.aggregate([
+        {
+            $group: {
+                _id: "$status",
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    const departmentStats = await Appointment.aggregate([
+        {
+            $group: {
+                _id: "$department",
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { count: -1 } }
+    ]);
+
+    res.status(200).json({
+        success: true,
+        stats: {
+            byStatus: stats,
+            byDepartment: departmentStats
+        }
+    })
+})
+
+

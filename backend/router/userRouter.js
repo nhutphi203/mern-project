@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/register", register); // Thêm dòng này
 router.post("/login", login);
 router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
-router.get("/doctors", getAllDoctors);
+router.get("/doctors", isAdminAuthenticated, getAllDoctors);
 router.get("/me", isPatientAuthenticated, getUserDetails);
 router.get("/logout", isPatientAuthenticated, logout);
 
