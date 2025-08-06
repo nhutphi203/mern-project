@@ -24,33 +24,47 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
             success: true,
             message: "User Logged Out Successfully!",
         });
-});
-export const patientRegister = catchAsyncErrors(async (req, res, next) => {
-    const { firstName, lastName, email, phone, password, gender, dob, nic, role } = req.body;
+}); export const register = catchAsyncErrors(async (req, res, next) => {
+    const {
+        firstName, lastName, email, phone, password, gender, dob, nic, role,
+        // Các trường dành riêng cho bác sĩ
+        specialization, licenseNumber, doctorDepartment
+    } = req.body;
+
+    // Kiểm tra các trường chung
     if (!firstName || !lastName || !email || !phone || !password || !gender || !dob || !nic || !role) {
-        return next(new ErrorHandler("Please fill full form!", 400));
+        return next(new ErrorHandler("Please fill the full registration form!", 400));
+    }
+
+    // Kiểm tra các trường bắt buộc nếu vai trò là Bác sĩ
+    if (role === "Doctor" && (!specialization || !licenseNumber || !doctorDepartment)) {
+        return next(new ErrorHandler("Please provide specialization, license number, and department for the Doctor role!", 400));
     }
 
     const isRegistered = await User.findOne({ email });
     if (isRegistered) {
-        return next(new ErrorHandler("User with this email already registered", 400));
+        return next(new ErrorHandler("User with this email already exists!", 400));
     }
 
-    const user = await User.create({
+    // Tạo payload để tạo user mới
+    const userPayload = {
         firstName, lastName, email, phone, password, gender, dob, nic, role,
-    });
+        specialization: role === "Doctor" ? specialization : undefined,
+        licenseNumber: role === "Doctor" ? licenseNumber : undefined,
+        doctorDepartment: role === "Doctor" ? doctorDepartment : undefined,
+    };
 
-    if (!user) {
-        return next(new ErrorHandler("User registration failed. Please try again.", 500));
-    }
+    const user = await User.create(userPayload);
 
-    // Luồng đăng ký này là đúng: chỉ thông báo, không tự động đăng nhập.
+    // Trả về thông báo thành công, không tự động đăng nhập
     res.status(201).json({
         success: true,
-        message: "Patient registered successfully! Please log in.",
+        message: `${role} registered successfully! Please proceed to login.`,
     });
 });
 
+
+// --- LOGIN USER (NO CHANGES NEEDED, BUT CONFIRMED TO WORK) ---
 export const login = catchAsyncErrors(async (req, res, next) => {
     const { email, password, role } = req.body;
     if (!email || !password || !role) {
@@ -59,20 +73,19 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-        // Luôn trả về thông báo chung để bảo mật
-        return next(new ErrorHandler("Invalid email or password", 400));
+        return next(new ErrorHandler("Invalid email or password", 401));
     }
 
     const isPasswordMatched = await user.comparePassword(password);
     if (!isPasswordMatched) {
-        // Luôn trả về thông báo chung để bảo mật
-        return next(new ErrorHandler("Invalid email or password", 400));
+        return next(new ErrorHandler("Invalid email or password", 401));
     }
 
     if (role !== user.role) {
-        return next(new ErrorHandler(`User with this role not found!`, 400));
+        return next(new ErrorHandler(`User with provided role not found!`, 404));
     }
 
+    // generateToken utility will create a JWT with user's ID and role
     generateToken(user, "User logged in successfully!", 200, res);
 });
 

@@ -1,92 +1,93 @@
-import mongoose from "mongoose"
-import validator from "validator"
-import bcrypt from "bcrypt"
-import jwt from "jsonwebtoken"
+// backend/models/userScheme.js
+import mongoose from "mongoose";
+import validator from "validator";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,
-        required: true,
-        minLength: [3, "First name must contain at least 3 characters"]
+        required: [true, "First name is required!"],
+        minLength: [3, "First name must contain at least 3 characters!"]
     },
     lastName: {
         type: String,
-        required: true,
-        minLength: [3, "Last name must contain at least 3 characters"]
+        required: [true, "Last name is required!"],
+        minLength: [3, "Last name must contain at least 3 characters!"]
     },
     email: {
         type: String,
-        required: true,
-        validate: [validator.isEmail, "Please provide a valid email"]
+        required: [true, "Email is required!"],
+        validate: [validator.isEmail, "Please provide a valid email!"]
     },
     phone: {
         type: String,
-        required: true,
-        minLength: [10, "phone number must contain 10"],
-        maxLength: [10, "phone number must contain 10"]
+        required: [true, "Phone number is required!"],
+        minLength: [10, "Phone number must contain exactly 10 digits!"],
+        maxLength: [10, "Phone number must contain exactly 10 digits!"]
     },
-    nic: {
+    nic: { // National ID Card
         type: String,
-        required: true,
-        minLength: [12, "nic must contain 12"],
-        maxLength: [12, "nic must contain 12"]
+        required: [true, "NIC is required!"],
+        minLength: [12, "NIC must contain exactly 12 digits!"],
+        maxLength: [12, "NIC must contain exactly 12 digits!"]
     },
-    dob: {
+    dob: { // Date of Birth
         type: Date,
-        required: [true, "DOB is required!"],
+        required: [true, "Date of Birth is required!"],
     },
     gender: {
         type: String,
-        required: true,
-        enum: ["Male", "Female"],
+        required: [true, "Gender is required!"],
+        enum: ["Male", "Female", "Other"],
     },
     password: {
         type: String,
-        minLength: [8, "password must contain at least 8 characters!"],
-        required: true,
-        select: false,
+        required: [true, "Password is required!"],
+        minLength: [8, "Password must contain at least 8 characters!"],
+        select: false, // Don't send password in response
     },
     role: {
         type: String,
-        enum: ['patient', 'doctor', 'receptionist', 'admin'],
-        default: 'patient',
+        required: [true, "User role is required!"],
+        enum: ["Patient", "Doctor", "Admin"],
     },
-    // Doctor-specific fields
-    specialty: { type: String }, // Chuyên khoa
-    qualifications: { type: String }, // Bằng cấp
+
+    // --- Doctor specific fields ---
     doctorDepartment: {
         type: String,
-
     },
     docAvatar: {
         public_id: String,
         url: String,
+    },
+    // --- Custom fields from your request ---
+    specialization: {
+        type: String,
+    },
+    licenseNumber: {
+        type: String,
     }
-
-
 });
 
+// Hashing password before saving
 userSchema.pre("save", async function (next) {
-    /*.pre("save", ...): This defines a pre-save hook in Mongoose.
-     It allows you to execute some code before the save operation
-      occurs on the document (in this case, the user document).
-       The "save" string specifies that the hook should run 
-       before a document is saved to the database.*/
     if (!this.isModified("password")) {
-        next()
+        next();
     }
-    this.password = await bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10);
 });
 
+// Comparing password for login
 userSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password)
+    return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Generating JWT
 userSchema.methods.generateJsonWebToken = function () {
-    return jwt.sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
+    return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET_KEY, {
         expiresIn: process.env.JWT_EXPIRES,
     });
-}
-
+};
 
 export const User = mongoose.model("User", userSchema);

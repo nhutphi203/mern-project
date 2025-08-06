@@ -3,7 +3,7 @@ import ErrorHandler from "./errorMiddleware.js";
 import jwt from "jsonwebtoken"
 import { User } from "../models/userScheme.js";
 
-export const isAdminAuthenticated = catchAsyncErrors(async(req,res,next) =>{
+export const isAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
     const token = req.cookies.adminToken;
 
     if (!token) {
@@ -11,13 +11,27 @@ export const isAdminAuthenticated = catchAsyncErrors(async(req,res,next) =>{
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.user = await User.findById(decoded.id);
-    if(req.user.role !== "Admin"){
-        return next(new ErrorHandler(`${req.user.role} not authorized for this resources!`,403))
+    if (req.user.role !== "Admin") {
+        return next(new ErrorHandler(`${req.user.role} not authorized for this resources!`, 403))
     }
     next();
 })
+// Thêm vào backend/middlewares/auth.js
 
-export const isPatientAuthenticated = catchAsyncErrors(async(req,res,next) =>{
+export const isDoctorAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    const token = req.cookies.doctorToken || req.cookies.patientToken; // Có thể dùng chung token
+
+    if (!token) {
+        return next(new ErrorHandler("Doctor not Authenticated!", 400))
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = await User.findById(decoded.id);
+    if (req.user.role !== "Doctor") {
+        return next(new ErrorHandler(`${req.user.role} not authorized for this resources!`, 403))
+    }
+    next();
+})
+export const isPatientAuthenticated = catchAsyncErrors(async (req, res, next) => {
     const token = req.cookies.patientToken;
 
     if (!token) {
@@ -25,8 +39,8 @@ export const isPatientAuthenticated = catchAsyncErrors(async(req,res,next) =>{
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.user = await User.findById(decoded.id);
-    if(req.user.role !== "Patient"){
-        return next(new ErrorHandler(`${req.user.role} not authorized for this resources!`,403))
+    if (req.user.role !== "Patient") {
+        return next(new ErrorHandler(`${req.user.role} not authorized for this resources!`, 403))
     }
     next();
 })
