@@ -1,25 +1,40 @@
 // src/hooks/useAppointments.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appointmentApi } from '@/api'; // Assuming you have this
-import type { Appointment } from '@/api/types';
-import { useToast } from '@/components/ui/use-toast'; // Corrected import path
+import { appointmentApi } from '@/api';
+import type { Appointment, AppointmentRequest } from '@/api/types';
+import { useToast } from '@/hooks/use-toast';
 import { ApiError } from '@/api/config';
+import { useCurrentUser } from './useAuth';
 
 export const useAppointments = () => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const { data: currentUser } = useCurrentUser();
 
-    // Get all appointments (admin only)
+    const userRole = currentUser?.user?.role;
+
+    // Get appointments based on user role
     const appointmentsQuery = useQuery({
-        queryKey: ['appointments'],
-        queryFn: () => appointmentApi.getAllAppointments(),
+        queryKey: ['appointments', userRole],
+        queryFn: () => {
+            switch (userRole) {
+                case 'Admin':
+                    return appointmentApi.getAllAppointments();
+                case 'Patient':
+                    return appointmentApi.getMyAppointments();
+                case 'Doctor':
+                    return appointmentApi.getDoctorAppointments();
+                default:
+                    throw new Error('Unauthorized access');
+            }
+        },
         select: (data) => data.appointments,
-        enabled: false, // 1. Prevents automatic API call
-        retry: false,   // Optional: Prevents retrying on initial failure
+        enabled: !!userRole, // Only fetch when user role is available
+        retry: false,
     });
 
     const createAppointmentMutation = useMutation({
-        mutationFn: appointmentApi.createAppointment,
+        mutationFn: (data: AppointmentRequest) => appointmentApi.createAppointment(data),
         onSuccess: () => {
             toast({
                 title: "Appointment Booked",
@@ -27,7 +42,6 @@ export const useAppointments = () => {
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
         },
-        // 2. Standardized error handling
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Booking failed. Please try again.";
             toast({
@@ -48,7 +62,6 @@ export const useAppointments = () => {
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
         },
-        // 2. Standardized error handling
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Update failed. Please try again.";
             toast({
@@ -68,7 +81,6 @@ export const useAppointments = () => {
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
         },
-        // 2. Standardized error handling (and fixed the nested toast)
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Deletion failed. Please try again.";
             toast({
@@ -84,7 +96,7 @@ export const useAppointments = () => {
         appointments: appointmentsQuery.data,
         isLoading: appointmentsQuery.isLoading,
         error: appointmentsQuery.error,
-        fetchAppointments: appointmentsQuery.refetch, // 3. Expose the refetch function
+        fetchAppointments: appointmentsQuery.refetch,
 
         // Functions to modify appointments
         createAppointment: createAppointmentMutation.mutate,

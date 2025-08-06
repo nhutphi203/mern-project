@@ -1,18 +1,17 @@
 // src/api/auth.ts
 
 import { apiRequest } from './config';
-import type { User, LoginRequest, RegisterRequest, MessageRequest } from './types';
-
+import type { User, LoginRequest, RegisterRequest } from './types';
+import type { MessageResponse } from './types';
 export const authApi = {
     // Đăng ký Patient
-    registerPatient: async (data: RegisterRequest) => {
-        // Thêm /api/v1/
-        return apiRequest<{ user: User; token: string; message: string }>('/api/v1/user/patient/register', {
+    register: async (data: RegisterRequest) => {
+        // Trỏ đến endpoint /register mới
+        return apiRequest('/api/v1/user/register', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
-
     // Đăng nhập
     login: async (data: LoginRequest) => {
         // Thêm /api/v1/

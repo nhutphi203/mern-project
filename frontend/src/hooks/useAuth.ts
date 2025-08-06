@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 type UserDetailsResponse = {
     user: User;
 };
+export type LoginCredentials = LoginRequest; // <--- THÊM DÒNG NÀY
 export const useAuth = () => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
@@ -51,21 +52,26 @@ export const useAuth = () => {
 
     // Giữ nguyên logic registerMutation của bạn
     const registerMutation = useMutation({
-        // ✅ SỬA LỖI Ở ĐÂY: Tên hàm đúng là 'registerPatient' trong authApi
-        mutationFn: authApi.registerPatient,
+        mutationFn: authApi.register, // Đã sửa thành hàm register chung
         onSuccess: (data) => {
             toast({
                 title: 'Registration Successful',
-                description: data.message,
             });
             navigate('/login');
         },
-        // ✅ SỬA LỖI Ở ĐÂY: Thêm kiểu dữ liệu cho 'error'
-        onError: (error: ApiError) => {
-            const message = error.message || 'An unexpected error occurred.';
+        // --- SỬA LẠI HÀM ONERROR TẠI ĐÂY ---
+        onError: (error: unknown) => { // 1. Nhận error với kiểu `unknown`
+            let errorMessage = "An unexpected error occurred.";
+
+            // 2. Kiểm tra xem error có phải là ApiError hoặc Error không
+            if (error instanceof ApiError || error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            // 3. Hiển thị thông báo lỗi đã được xử lý an toàn
             toast({
                 title: 'Registration Failed',
-                description: message,
+                description: errorMessage,
                 variant: 'destructive',
             });
         },
@@ -95,6 +101,8 @@ export const useAuth = () => {
         isLoggingIn: loginMutation.isPending,
         logoutMutation: logoutMutation.mutate,
         isLogouting: logoutMutation.isPending,
+        loginMutation: loginMutation,
+        isLoginMutation: loginMutation.isPending,
     };
 };
 export const useCurrentUser = () => {

@@ -8,7 +8,7 @@ export interface User {
     phone: string;
     nic: string;
     dob: string;
-    gender: 'Male' | 'Female';
+    gender: 'Male' | 'Female'; // Cho phép cả 'Other'
     role: 'Admin' | 'Patient' | 'Doctor';
     doctorDepartment?: string;
     docAvatar?: {
@@ -32,10 +32,15 @@ export interface RegisterRequest {
     email: string;
     phone: string;
     password: string;
-    gender: 'Male' | 'Female';
+    gender: 'Male' | 'Female' | 'Other'; // Cho phép cả 'Other'
     dob: string;
     nic: string;
-    role: 'Patient';
+    role: 'Patient' | 'Doctor' | 'Admin'; // ✅ Cho phép cả 3 vai trò
+
+    // Thêm các trường tùy chọn cho bác sĩ
+    specialization?: string;
+    licenseNumber?: string;
+    doctorDepartment?: string;
 }
 
 export interface Appointment {
@@ -68,12 +73,14 @@ export interface AppointmentRequest {
     nic: string;
     dob: string;
     gender: 'Male' | 'Female';
-    appointment_data: string;
+    appointment_date: string;
     department: string;
     doctor_firstName: string;
     doctor_lastName: string;
     hasVisited: boolean;
     address: string;
+    doctorId: string;
+
 }
 
 export interface Message {

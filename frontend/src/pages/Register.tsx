@@ -1,257 +1,185 @@
+// src/pages/Register.tsx - Redesigned by Gemini UI Expert
 
-// src/pages/Register.tsx
 import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+
+// --- SHADCN/UI & LUCIDE ICONS ---
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, User, Mail, Phone, CreditCard, Eye, EyeOff } from 'lucide-react';
-import { format } from 'date-fns';
-import { useAuth, useCurrentUser } from '@/hooks/useAuth';
-import type { RegisterRequest } from '@/api/types';
-import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
-import { Lock } from "lucide-react"; // hoặc 'react-icons/fi'
-const Register = () => {
-    const { register, isRegistering } = useAuth();
-    const [showPassword, setShowPassword] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date>();
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2, UserCog, Stethoscope, User as PatientIcon } from 'lucide-react';
 
-    const [formData, setFormData] = useState<RegisterRequest>({
+// --- AUTH LOGIC & TYPES (KHÔNG THAY ĐỔI) ---
+import { useAuth } from '@/hooks/useAuth';
+import { RegisterRequest } from '@/api/types';
+
+/**
+ * Component cho panel bên trái, chứa thông tin thương hiệu.
+ * Sẽ được ẩn trên màn hình di động.
+ */
+const BrandPanel = () => (
+    <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-8 text-center">
+        <div className="flex items-center justify-center h-20 w-20 rounded-full bg-white shadow-md mb-6">
+            <Stethoscope className="h-10 w-10 text-blue-600" />
+        </div>
+        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+            MediFlow
+        </h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+            Your Health, Our Priority.
+        </p>
+    </div>
+);
+
+
+/**
+ * Component Form đăng ký, chứa toàn bộ logic và state của form.
+ */
+const RegisterForm = ({ onSubmit, isRegistering }: { onSubmit: (payload: unknown) => void, isRegistering: boolean }) => {
+    // --- STATE & LOGIC CỦA FORM (GIỮ NGUYÊN) ---
+    const { toast } = useToast();
+    const [role, setRole] = useState<'Patient' | 'Doctor' | 'Admin'>('Patient');
+    const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
         email: '',
         phone: '',
-        password: '',
-        gender: 'Male',
-        dob: '',
         nic: '',
-        role: 'Patient',
+        dob: '',
+        gender: '' as 'Male' | 'Female' | 'Other' | '', // Khởi tạo rỗng để placeholder hiển thị
+        password: '',
+        confirmPassword: '',
+        specialization: '',
+        licenseNumber: '',
+        doctorDepartment: '',
     });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSelectChange = (name: string, value: unknown) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!selectedDate) {
-            toast({
-                title: "Date Required",
-                description: "Please select your date of birth.",
-                variant: "destructive",
-            });
+        // Validation logic (giữ nguyên)
+        if (formData.password !== formData.confirmPassword) {
+            toast({ title: "Validation Error", description: "Passwords do not match.", variant: "destructive" });
+            return;
+        }
+        if (!formData.gender) {
+            toast({ title: "Validation Error", description: "Please select a gender.", variant: "destructive" });
             return;
         }
 
-        const dataToSubmit = {
-            ...formData,
-            dob: selectedDate.toISOString(),
-        };
-        console.log('Registering with data:', dataToSubmit);
-
-        register(dataToSubmit);
-    };
-
-    const handleInputChange = (field: keyof RegisterRequest, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        // Tạo payload, loại bỏ confirmPassword
+        const { confirmPassword, ...payload } = { ...formData, role };
+        onSubmit(payload);
     };
 
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center"
-            // Sử dụng ảnh nền chuyên nghiệp từ Unsplash
-            style={{ backgroundImage: "url('/images/hero-hospital.jpg')" }}>
-            <Card className="w-full max-w-2xl shadow-lg">
-                <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 h-12 w-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                        <User className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-                    <CardDescription>
-                        Join MediFlow and start managing your healthcare journey
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Name Fields */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="firstName">First Name</Label>
-                                <Input
-                                    id="firstName"
-                                    placeholder="Enter your first name"
-                                    value={formData.firstName}
-                                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                    required
-                                    minLength={3}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="lastName">Last Name</Label>
-                                <Input
-                                    id="lastName"
-                                    placeholder="Enter your last name"
-                                    value={formData.lastName}
-                                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                    required
-                                    minLength={3}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Contact Information */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={formData.email}
-                                        onChange={(e) => handleInputChange('email', e.target.value)}
-                                        className="pl-10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        placeholder="Enter 10-digit phone number"
-                                        value={formData.phone}
-                                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                                        className="pl-10"
-                                        required
-                                        maxLength={10}
-                                        minLength={10}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Personal Information */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="nic">National ID Number</Label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="nic"
-                                        placeholder="Enter 12-digit ID number"
-                                        value={formData.nic}
-                                        onChange={(e) => handleInputChange('nic', e.target.value)}
-                                        className="pl-10"
-                                        required
-                                        maxLength={12}
-                                        minLength={12}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Gender</Label>
-                                <Select value={formData.gender} onValueChange={(value: 'Male' | 'Female') => handleInputChange('gender', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select gender" />
-                                    </SelectTrigger>
+        <Card className="w-full  max-w-4xl ml-auto border-0 shadow-none lg:border lg:shadow-xl rounded-2xl">
+            <CardHeader className="text-center pt-4 pb-2">
+                <CardTitle className="text-2xl lg:text-3xl">Create Account</CardTitle>
+                <CardDescription>Join our network of care today.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6">
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    {/* Main 2-column layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                        {/* Left Column */}
+                        <div className="space-y-2">
+                            <div className="space-y-1">
+                                <Label htmlFor="role">Registering as</Label>
+                                <Select value={role} onValueChange={(value: 'Patient' | 'Doctor' | 'Admin') => setRole(value)}>
+                                    <SelectTrigger id="role" className="transition-all focus:ring-2 focus:ring-blue-400"><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Male">Male</SelectItem>
-                                        <SelectItem value="Female">Female</SelectItem>
+                                        <SelectItem value="Patient"><div className="flex items-center"><PatientIcon className="h-4 w-4 mr-2" />Patient</div></SelectItem>
+                                        <SelectItem value="Doctor"><div className="flex items-center"><Stethoscope className="h-4 w-4 mr-2" />Doctor</div></SelectItem>
+                                        <SelectItem value="Admin"><div className="flex items-center"><UserCog className="h-4 w-4 mr-2" />Admin</div></SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div className="space-y-1"><Label htmlFor="firstName">First Name</Label><Input id="firstName" name="firstName" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1"><Label htmlFor="lastName">Last Name</Label><Input id="lastName" name="lastName" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1"><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" onChange={handleInputChange} required minLength={8} className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
                         </div>
 
-                        {/* Date of Birth */}
+                        {/* Right Column */}
                         <div className="space-y-2">
-                            <Label>Date of Birth</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !selectedDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={selectedDate}
-                                        onSelect={setSelectedDate}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("1900-01-01")
-                                        }
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <div className="space-y-1"><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" type="tel" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1"><Label htmlFor="nic">National ID</Label><Input id="nic" name="nic" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1"><Label htmlFor="dob">Date of Birth</Label><Input id="dob" name="dob" type="date" onChange={handleInputChange} required className="block w-full transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                            <div className="space-y-1">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select name="gender" onValueChange={(value) => handleSelectChange('gender', value)}>
+                                    <SelectTrigger id="gender" className="transition-all focus:ring-2 focus:ring-blue-400"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Male">Male</SelectItem>
+                                        <SelectItem value="Female">Female</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1"><Label htmlFor="confirmPassword">Confirm Password</Label><Input id="confirmPassword" name="confirmPassword" type="password" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
                         </div>
+                    </div>
 
-                        {/* Password */}
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Enter your password (min 8 characters)"
-                                    value={formData.password}
-                                    onChange={(e) => handleInputChange('password', e.target.value)}
-                                    className="pl-10 pr-10"
-                                    required
-                                    minLength={8}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
+                    {/* Doctor Specific Fields */}
+                    {role === 'Doctor' && (
+                        <div className="space-y-2 border-t pt-3 mt-3">
+                            <h3 className="text-md font-semibold text-gray-700 text-center md:text-left">Doctor Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                                <div className="space-y-1 md:col-span-2"><Label htmlFor="doctorDepartment">Department</Label><Input id="doctorDepartment" name="doctorDepartment" onChange={handleInputChange} required placeholder="e.g., Cardiology" className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                                <div className="space-y-1"><Label htmlFor="specialization">Specialization</Label><Input id="specialization" name="specialization" onChange={handleInputChange} required placeholder="e.g., Cardiologist" className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
+                                <div className="space-y-1"><Label htmlFor="licenseNumber">License Number</Label><Input id="licenseNumber" name="licenseNumber" onChange={handleInputChange} required className="transition-all focus:ring-2 focus:ring-blue-400" /></div>
                             </div>
                         </div>
+                    )}
 
-                        <Button type="submit" className="w-full" disabled={isRegistering}>
-                            {isRegistering ? 'Creating Account...' : 'Create Account'}
-                        </Button>
-                    </form>
-                </CardContent>
+                    <Button type="submit" className="w-full h-11 text-base bg-blue-600 hover:bg-blue-700 transition-all hover:shadow-lg" disabled={isRegistering}>
+                        {isRegistering ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Creating Account...</> : 'Create Account'}
+                    </Button>
+                    <p className="text-center text-sm text-muted-foreground pt-1">
+                        Already have an account? <Link to="/login" className="font-semibold text-blue-600 hover:underline">Login here.</Link>
+                    </p>
+                </form>
+            </CardContent>
+        </Card>
+    );
+};
 
-                <CardFooter className="flex flex-col space-y-4">
-                    <div className="text-center text-sm text-muted-foreground">
-                        Already have an account?{' '}
-                        <Link to="/login" className="text-primary hover:underline">
-                            Sign in here
-                        </Link>
-                    </div>
+const Register = () => {
+    // --- LOGIC GỐC (GIỮ NGUYÊN) ---
+    const { register, isRegistering } = useAuth();
 
-                    <div className="text-center text-sm text-muted-foreground">
-                        By creating an account, you agree to our{' '}
-                        <Link to="/terms" className="text-primary hover:underline">
-                            Terms of Service
-                        </Link>{' '}
-                        and{' '}
-                        <Link to="/privacy" className="text-primary hover:underline">
-                            Privacy Policy
-                        </Link>
-                    </div>
-                </CardFooter>
-            </Card>
-        </div>
+    const handleRegister = (payload: RegisterRequest) => {
+        register(payload);
+    };
+
+    return (
+        <>
+            <style>
+                {`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                  body { font-family: 'Inter', sans-serif; }`}
+            </style>
+            <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-5">
+                {/* Panel bên trái */}
+                <BrandPanel />
+
+                {/* Panel bên phải - Chứa form đăng ký */}
+                <div className="flex items-center justify-center lg:col-span-3 px-4 py-6 lg:py-8">
+                    <RegisterForm onSubmit={handleRegister} isRegistering={isRegistering} />
+                </div>
+            </div>
+        </>
     );
 };
 

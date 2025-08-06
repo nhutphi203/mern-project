@@ -1,6 +1,7 @@
 // src/pages/BookAppointment.tsx
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,387 +10,200 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarIcon, Clock, MapPin, User, Phone, Mail, CreditCard } from 'lucide-react';
+import { CalendarIcon, Clock, User, Phone, Mail, Stethoscope, ArrowRight, Loader2 } from 'lucide-react'; // Thêm icon mới
 import { format } from 'date-fns';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useDoctors } from '@/hooks/useDoctors';
-import type { AppointmentRequest } from '@/api/types';
+import type { AppointmentRequest, User as DoctorUser } from '@/api/types'; // Import User và đổi tên thành DoctorUser
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { toast } from '@/hooks/use-toast';
-const departments = [
-    'Cardiology',
-    'Neurology',
-    'Orthopedics',
-    'Pediatrics',
-    'Ophthalmology',
-    'General Medicine',
-    'Emergency Medicine',
-    'Dermatology',
-    'Psychiatry',
-    'Radiology'
-];
+import { useToast } from '@/components/ui/use-toast';
 
-const timeSlots = [
-    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM',
-    '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM'
-];
+// Giữ nguyên các hằng số
+const departments = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Ophthalmology', 'General Medicine', 'Emergency Medicine', 'Dermatology', 'Psychiatry', 'Radiology'];
+const timeSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM'];
+
+// Component Step để làm giao diện đẹp hơn
+const Step = ({ number, title, children, isActive }: { number: number, title: string, children: React.ReactNode, isActive: boolean }) => (
+    <Card className={cn("transition-all", isActive ? "border-primary shadow-lg" : "border-border/40 bg-muted/20")}>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+                <span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold", isActive ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
+                    {number}
+                </span>
+                {title}
+            </CardTitle>
+        </CardHeader>
+        {isActive && <CardContent>{children}</CardContent>}
+    </Card>
+);
 
 const BookAppointment = () => {
-    const { data: currentUser } = useCurrentUser('patient');
+    const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
     const { createAppointment, isCreating } = useAppointments();
-    const { doctors } = useDoctors();
+    const { doctors, isLoading: isDoctorsLoading } = useDoctors();
+    const { toast } = useToast();
+    const navigate = useNavigate();
 
+    const [currentStep, setCurrentStep] = useState(1);
     const [selectedDate, setSelectedDate] = useState<Date>();
     const [selectedTime, setSelectedTime] = useState<string>('');
     const [selectedDepartment, setSelectedDepartment] = useState<string>('');
-    const [selectedDoctor, setSelectedDoctor] = useState<{ firstName: string; lastName: string }>({ firstName: '', lastName: '' });
+    const [selectedDoctor, setSelectedDoctor] = useState<DoctorUser | null>(null);
+    const [address, setAddress] = useState('');
 
-    const [formData, setFormData] = useState<Omit<AppointmentRequest, 'appointment_data' | 'doctor_firstName' | 'doctor_lastName'>>({
-        firstName: currentUser?.user?.firstName || '',
-        lastName: currentUser?.user?.lastName || '',
-        email: currentUser?.user?.email || '',
-        phone: currentUser?.user?.phone || '',
-        nic: currentUser?.user?.nic || '',
-        dob: currentUser?.user?.dob || '',
-        gender: currentUser?.user?.gender || 'Male',
-        department: '',
-        hasVisited: false,
-        address: '',
-    });
-
-    // Filter doctors by selected department
-    const departmentDoctors = doctors?.filter(doctor =>
+    // Filter doctors theo khoa đã chọn
+    const departmentDoctors = useMemo(() => doctors?.filter(doctor =>
         doctor.doctorDepartment === selectedDepartment
-    ) || [];
+    ) || [], [doctors, selectedDepartment]);
+
+    // Reset lựa chọn bác sĩ và ngày giờ khi đổi khoa
+    useEffect(() => {
+        setSelectedDoctor(null);
+        setSelectedDate(undefined);
+        setSelectedTime('');
+    }, [selectedDepartment]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!selectedDate || !selectedTime) {
+        if (!currentUser?.user || !selectedDoctor || !selectedDate || !selectedTime || !address) {
             toast({
-                title: "Date and Time Required",
-                description: "Please select both date and time for your appointment.",
+                title: "Incomplete Information",
+                description: "Please complete all steps before booking.",
                 variant: "destructive",
             });
             return;
         }
-
-        if (!selectedDoctor.firstName || !selectedDoctor.lastName) {
-            toast({
-                title: "Doctor Selection Required",
-                description: "Please select a doctor for your appointment.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const appointmentDateTime = `${format(selectedDate, 'yyyy-MM-dd')} ${selectedTime}`;
-
         const appointmentData: AppointmentRequest = {
-            ...formData,
+            firstName: currentUser.user.firstName,
+            lastName: currentUser.user.lastName,
+            email: currentUser.user.email,
+            phone: currentUser.user.phone,
+            nic: currentUser.user.nic,
+            dob: currentUser.user.dob,
+            gender: currentUser.user.gender,
+            appointment_date: `${format(selectedDate, 'yyyy-MM-dd')} ${selectedTime}`, // Sửa lại tên trường
             department: selectedDepartment,
-            appointment_data: appointmentDateTime,
             doctor_firstName: selectedDoctor.firstName,
             doctor_lastName: selectedDoctor.lastName,
+            hasVisited: false,
+            address: address,
+            doctorId: selectedDoctor._id, // Dòng này giờ đã hợp lệ
         };
 
-        createAppointment(appointmentData);
+        createAppointment(appointmentData, {
+            onSuccess: () => {
+                toast({ title: "Appointment Booked!", description: "Your appointment has been successfully scheduled." });
+                navigate('/dashboard');
+            }
+        });
     };
 
-    const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleDoctorSelect = (doctorId: string) => {
-        const doctor = departmentDoctors.find(d => d._id === doctorId);
-        if (doctor) {
-            setSelectedDoctor({
-                firstName: doctor.firstName,
-                lastName: doctor.lastName
-            });
-        }
-    };
-
-    if (!currentUser?.user) {
-        return <Navigate to="/login" replace />;
-    }
+    if (isUserLoading) return <div>Loading...</div>;
+    if (!currentUser?.user) return <Navigate to="/login" replace />;
 
     return (
         <div className="min-h-screen bg-background">
             <Header />
-
-            <main className="pt-20 pb-10">
+            <main className="pt-28 pb-10">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-foreground mb-2">
-                                Book an Appointment
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Schedule your visit with our expert medical team
-                            </p>
+                    <div className="max-w-3xl mx-auto">
+                        <div className="text-center mb-10">
+                            <h1 className="text-4xl font-bold tracking-tight text-foreground">Book an Appointment</h1>
+                            <p className="mt-2 text-lg text-muted-foreground">Follow the steps below to schedule your visit.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="grid lg:grid-cols-2 gap-8">
-                                {/* Personal Information */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <User className="h-5 w-5" />
-                                            Personal Information
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="firstName">First Name</Label>
-                                                <Input
-                                                    id="firstName"
-                                                    value={formData.firstName}
-                                                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                                    required
-                                                    minLength={3}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="lastName">Last Name</Label>
-                                                <Input
-                                                    id="lastName"
-                                                    value={formData.lastName}
-                                                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                                    required
-                                                    minLength={3}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Email Address</Label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    id="email"
-                                                    type="email"
-                                                    value={formData.email}
-                                                    onChange={(e) => handleInputChange('email', e.target.value)}
-                                                    className="pl-10"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="phone">Phone Number</Label>
-                                            <div className="relative">
-                                                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    id="phone"
-                                                    type="tel"
-                                                    value={formData.phone}
-                                                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                                                    className="pl-10"
-                                                    required
-                                                    maxLength={10}
-                                                    minLength={10}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="nic">National ID Number</Label>
-                                            <div className="relative">
-                                                <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    id="nic"
-                                                    value={formData.nic}
-                                                    onChange={(e) => handleInputChange('nic', e.target.value)}
-                                                    className="pl-10"
-                                                    required
-                                                    maxLength={12}
-                                                    minLength={12}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label>Gender</Label>
-                                            <Select value={formData.gender} onValueChange={(value: 'Male' | 'Female') => handleInputChange('gender', value)}>
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* --- STEP 1: CHỌN KHOA & BÁC SĨ --- */}
+                            <Step number={1} title="Choose Department & Doctor" isActive={currentStep >= 1}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="department">Department</Label>
+                                        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                                            <SelectTrigger id="department"><SelectValue placeholder="Select a department" /></SelectTrigger>
+                                            <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    {isDoctorsLoading && <p>Loading doctors...</p>}
+                                    {selectedDepartment && !isDoctorsLoading && (
+                                        <div>
+                                            <Label htmlFor="doctor">Doctor</Label>
+                                            <Select onValueChange={(id) => setSelectedDoctor(departmentDoctors.find(d => d._id === id) || null)}>
+                                                <SelectTrigger id="doctor"><SelectValue placeholder="Select a doctor" /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Male">Male</SelectItem>
-                                                    <SelectItem value="Female">Female</SelectItem>
+                                                    {departmentDoctors.length > 0 ? departmentDoctors.map(d => (
+                                                        <SelectItem key={d._id} value={d._id}>Dr. {d.firstName} {d.lastName}</SelectItem>
+                                                    )) : <p className="p-4 text-sm text-muted-foreground">No doctors in this department.</p>}
                                                 </SelectContent>
                                             </Select>
                                         </div>
+                                    )}
+                                </div>
+                            </Step>
 
+                            {/* --- STEP 2: CHỌN NGÀY GIỜ --- */}
+                            {selectedDoctor && (
+                                <Step number={2} title="Select Date & Time" isActive={currentStep >= 2}>
+                                    <div className="grid md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="address">Address</Label>
-                                            <div className="relative">
-                                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Textarea
-                                                    id="address"
-                                                    placeholder="Enter your full address"
-                                                    value={formData.address}
-                                                    onChange={(e) => handleInputChange('address', e.target.value)}
-                                                    className="pl-10"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="hasVisited"
-                                                checked={formData.hasVisited}
-                                                onCheckedChange={(checked) => handleInputChange('hasVisited', checked as boolean)}
-                                            />
-                                            <Label htmlFor="hasVisited" className="text-sm">
-                                                I have visited this hospital before
-                                            </Label>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Appointment Details */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Calendar className="h-5 w-5" />
-                                            Appointment Details
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-6">
-                                        {/* Department Selection */}
-                                        <div className="space-y-2">
-                                            <Label>Department</Label>
-                                            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select department" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {departments.map((dept) => (
-                                                        <SelectItem key={dept} value={dept}>
-                                                            {dept}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {/* Doctor Selection */}
-                                        {selectedDepartment && (
-                                            <div className="space-y-2">
-                                                <Label>Select Doctor</Label>
-                                                <Select onValueChange={handleDoctorSelect}>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Choose your doctor" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {departmentDoctors.map((doctor) => (
-                                                            <SelectItem key={doctor._id} value={doctor._id}>
-                                                                Dr. {doctor.firstName} {doctor.lastName}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {departmentDoctors.length === 0 && selectedDepartment && (
-                                                    <p className="text-sm text-muted-foreground">
-                                                        No doctors available in this department
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Date Selection */}
-                                        <div className="space-y-2">
-                                            <Label>Appointment Date</Label>
+                                            <Label>Date</Label>
                                             <Popover>
                                                 <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal",
-                                                            !selectedDate && "text-muted-foreground"
-                                                        )}
-                                                    >
+                                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                                         {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-auto p-0">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={selectedDate}
-                                                        onSelect={setSelectedDate}
-                                                        disabled={(date) =>
-                                                            date < new Date() || date.getDay() === 0 // Disable past dates and Sundays
-                                                        }
-                                                        initialFocus
-                                                    />
+                                                    <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={(date) => date < new Date() || date.getDay() === 0} initialFocus />
                                                 </PopoverContent>
                                             </Popover>
                                         </div>
-
-                                        {/* Time Selection */}
                                         {selectedDate && (
                                             <div className="space-y-2">
-                                                <Label>Appointment Time</Label>
+                                                <Label>Time</Label>
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    {timeSlots.map((time) => (
-                                                        <Button
-                                                            key={time}
-                                                            type="button"
-                                                            variant={selectedTime === time ? "default" : "outline"}
-                                                            size="sm"
-                                                            onClick={() => setSelectedTime(time)}
-                                                            className="text-xs"
-                                                        >
-                                                            <Clock className="mr-1 h-3 w-3" />
+                                                    {timeSlots.map(time => (
+                                                        <Button key={time} type="button" variant={selectedTime === time ? "default" : "outline"} size="sm" onClick={() => setSelectedTime(time)}>
                                                             {time}
                                                         </Button>
                                                     ))}
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
+                                </Step>
+                            )}
 
-                                        {/* Selected Appointment Summary */}
-                                        {selectedDate && selectedTime && selectedDoctor.firstName && (
-                                            <Card className="bg-muted/50">
-                                                <CardContent className="p-4">
-                                                    <h4 className="font-medium mb-2">Appointment Summary</h4>
-                                                    <div className="space-y-1 text-sm">
-                                                        <p><strong>Doctor:</strong> Dr. {selectedDoctor.firstName} {selectedDoctor.lastName}</p>
-                                                        <p><strong>Department:</strong> {selectedDepartment}</p>
-                                                        <p><strong>Date:</strong> {format(selectedDate, "PPP")}</p>
-                                                        <p><strong>Time:</strong> {selectedTime}</p>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        )}
+                            {/* --- STEP 3: XÁC NHẬN VÀ ĐỊA CHỈ --- */}
+                            {selectedDate && selectedTime && (
+                                <Step number={3} title="Confirm & Submit" isActive={currentStep >= 3}>
+                                    <div className='space-y-4'>
+                                        <Card className="bg-muted/50">
+                                            <CardHeader><CardTitle className='text-base'>Appointment Summary</CardTitle></CardHeader>
+                                            <CardContent className='text-sm space-y-2'>
+                                                <p><strong>Doctor:</strong> Dr. {selectedDoctor?.firstName} {selectedDoctor?.lastName}</p>
+                                                <p><strong>Department:</strong> {selectedDepartment}</p>
+                                                <p><strong>On:</strong> {format(selectedDate, "PPP")} at {selectedTime}</p>
+                                            </CardContent>
+                                        </Card>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="address">Your Address</Label>
+                                            <Textarea id="address" placeholder="Enter your full address for our records" value={address} onChange={(e) => setAddress(e.target.value)} required />
+                                        </div>
+                                    </div>
+                                </Step>
+                            )}
 
-                                        <Button
-                                            type="submit"
-                                            className="w-full"
-                                            disabled={isCreating || !selectedDate || !selectedTime || !selectedDoctor.firstName}
-                                        >
-                                            {isCreating ? 'Booking Appointment...' : 'Book Appointment'}
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                            <Button type="submit" className="w-full text-lg py-6" disabled={isCreating}>
+                                {isCreating ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Booking...</> : <>Confirm and Book Appointment <ArrowRight className="ml-2 h-5 w-5" /></>}
+                            </Button>
                         </form>
                     </div>
                 </div>
             </main>
-
             <Footer />
         </div>
     );

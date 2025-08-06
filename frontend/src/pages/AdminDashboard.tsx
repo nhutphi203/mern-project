@@ -23,8 +23,8 @@ import { useMessages } from '@/hooks/useMessages';
 import { useDoctors } from '@/hooks/useDoctors';
 
 const AdminDashboard = () => {
-    const { data: currentUser, isLoading } = useCurrentUser('admin');
-    const { logoutAdmin } = useAuth();
+    const { data: currentUser, isLoading } = useCurrentUser();
+    const { logoutMutation } = useAuth();
     const { appointments, updateStatus, deleteAppointment, isUpdating, isDeleting } = useAppointments();
     const { messages } = useMessages();
     const { doctors } = useDoctors();
@@ -68,7 +68,7 @@ const AdminDashboard = () => {
                             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
                             <p className="text-muted-foreground">Welcome back, {user.firstName}</p>
                         </div>
-                        <Button variant="outline" onClick={() => logoutAdmin()}>
+                        <Button variant="outline" onClick={() => logoutMutation()}>
                             <LogOut className="mr-2 h-4 w-4" />
                             Logout
                         </Button>
