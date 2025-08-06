@@ -1,12 +1,17 @@
-// src/hooks/useAppointments.ts
+// frontend/src/hooks/useAppointments.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appointmentApi } from '@/api';
-import type { Appointment, AppointmentRequest } from '@/api/types';
+import type {
+    Appointment,
+    AppointmentRequest,
+    AppointmentFilter,
+    PopulatedAppointment
+} from '@/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { ApiError } from '@/api/config';
 import { useCurrentUser } from './useAuth';
 
-export const useAppointments = () => {
+export const useAppointments = (filter?: AppointmentFilter) => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { data: currentUser } = useCurrentUser();
@@ -15,8 +20,14 @@ export const useAppointments = () => {
 
     // Get appointments based on user role
     const appointmentsQuery = useQuery({
-        queryKey: ['appointments', userRole],
+        queryKey: ['appointments', userRole, filter],
         queryFn: () => {
+            // Nếu có filter, sử dụng filterAppointments API
+            if (filter && Object.keys(filter).length > 0) {
+                return appointmentApi.filterAppointments(filter);
+            }
+
+            // Nếu không có filter, sử dụng API theo role
             switch (userRole) {
                 case 'Admin':
                     return appointmentApi.getAllAppointments();
@@ -29,8 +40,16 @@ export const useAppointments = () => {
             }
         },
         select: (data) => data.appointments,
-        enabled: !!userRole, // Only fetch when user role is available
+        enabled: !!userRole,
         retry: false,
+    });
+
+    // Get appointment statistics (Admin only)
+    const statsQuery = useQuery({
+        queryKey: ['appointment-stats'],
+        queryFn: appointmentApi.getAppointmentStats,
+        enabled: userRole === 'Admin',
+        select: (data) => data.stats,
     });
 
     const createAppointmentMutation = useMutation({
@@ -61,6 +80,7 @@ export const useAppointments = () => {
                 description: "Appointment status has been updated successfully.",
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] });
         },
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Update failed. Please try again.";
@@ -80,6 +100,7 @@ export const useAppointments = () => {
                 description: "The appointment has been removed successfully.",
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] });
         },
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Deletion failed. Please try again.";
@@ -93,10 +114,15 @@ export const useAppointments = () => {
 
     return {
         // Data and status for displaying appointments
-        appointments: appointmentsQuery.data,
+        appointments: appointmentsQuery.data as PopulatedAppointment[] | undefined,
         isLoading: appointmentsQuery.isLoading,
         error: appointmentsQuery.error,
         fetchAppointments: appointmentsQuery.refetch,
+
+        // Statistics (Admin only)
+        stats: statsQuery.data,
+        isLoadingStats: statsQuery.isLoading,
+        statsError: statsQuery.error,
 
         // Functions to modify appointments
         createAppointment: createAppointmentMutation.mutate,
@@ -108,4 +134,13 @@ export const useAppointments = () => {
         isUpdating: updateStatusMutation.isPending,
         isDeleting: deleteAppointmentMutation.isPending,
     };
+};
+
+// Hook riêng cho filter appointments
+export const useFilteredAppointments = (filter: AppointmentFilter) => {
+    return useQuery({
+        queryKey: ['filtered-appointments', filter],
+        queryFn: () => appointmentApi.filterAppointments(filter),
+        enabled: Object.keys(filter).length > 0,
+    });
 };

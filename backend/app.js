@@ -44,6 +44,7 @@ app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/appointment", appointmentRouter);
 app.use("/api/v1/profiles", patientProfileRouter); // API cho hồ sơ bệnh nhân
+app.use("/api/v1/users", userRouter); // <--- ĐẢM BẢO BẠN CÓ DÒNG NÀY
 
 dbConnection();
 

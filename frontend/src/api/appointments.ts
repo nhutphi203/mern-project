@@ -1,6 +1,12 @@
-// src/api/appointments.ts
+// frontend/src/api/appointments.ts
 import { apiRequest } from './config';
-import type { Appointment, AppointmentRequest } from './types';
+import type {
+    Appointment,
+    AppointmentRequest,
+    PopulatedAppointment,
+    AppointmentFilter,
+    AppointmentStats
+} from './types';
 
 export const appointmentApi = {
     // Create new appointment (patient only)
@@ -11,19 +17,37 @@ export const appointmentApi = {
         });
     },
 
-    // Get all appointments (admin only)
+    // Get all appointments (admin only) - trả về populated data
     getAllAppointments: async () => {
-        return apiRequest<{ appointments: Appointment[] }>('/api/v1/appointment/getall');
+        return apiRequest<{ appointments: PopulatedAppointment[] }>('/api/v1/appointment/getall');
     },
 
     // Get patient's own appointments (patient only)
     getMyAppointments: async () => {
-        return apiRequest<{ appointments: Appointment[] }>('/api/v1/appointment/my-appointments');
+        return apiRequest<{ appointments: PopulatedAppointment[] }>('/api/v1/appointment/my-appointments');
     },
 
     // Get doctor's appointments (doctor only)
     getDoctorAppointments: async () => {
-        return apiRequest<{ appointments: Appointment[] }>('/api/v1/appointment/doctor-appointments');
+        return apiRequest<{ appointments: PopulatedAppointment[] }>('/api/v1/appointment/doctor-appointments');
+    },
+
+    // Filter appointments (admin only) - API mới
+    filterAppointments: async (filter: AppointmentFilter) => {
+        const queryParams = new URLSearchParams();
+        Object.entries(filter).forEach(([key, value]) => {
+            if (value) queryParams.append(key, value);
+        });
+
+        return apiRequest<{
+            appointments: PopulatedAppointment[];
+            count: number
+        }>(`/api/v1/appointment/filter?${queryParams.toString()}`);
+    },
+
+    // Get appointment statistics (admin only) - API mới
+    getAppointmentStats: async () => {
+        return apiRequest<{ stats: AppointmentStats }>('/api/v1/appointment/stats');
     },
 
     // Update appointment status (admin only)

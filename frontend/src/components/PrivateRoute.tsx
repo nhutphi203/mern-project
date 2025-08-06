@@ -8,7 +8,7 @@ import { useCurrentUser } from '../hooks/useAuth'; // Hoặc đường dẫn đ�
  */
 
 const PrivateRoute = ({ children }) => {
-    const { data: user, isLoading } = useCurrentUser('patient'); // Sử dụng đúng hook
+    const { data: user, isLoading } = useCurrentUser(); // Sử dụng đúng hook
 
     if (isLoading) {
         return <div>Đang tải dữ liệu người dùng...</div>;

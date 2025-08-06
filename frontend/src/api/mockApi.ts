@@ -9,7 +9,7 @@ export const getAboutData = async () => {
         title: "Giới thiệu về HealthCare Center",
         content: `
       <p class="mb-4">Chào mừng bạn đến với <strong>HealthCare Center</strong>, nơi chúng tôi đặt sức khỏe của bạn lên hàng đầu. Với đội ngũ y bác sĩ chuyên môn cao, giàu kinh nghiệm cùng hệ thống trang thiết bị y tế hiện đại, chúng tôi cam kết mang đến những dịch vụ chăm sóc sức khỏe toàn diện, chất lượng và đáng tin cậy.</p>
-      <img src="https://placehold.co/800x400/a7f3d0/14532d?text=Our+Clinic" alt="Hình ảnh phòng khám" class="rounded-lg shadow-md my-6 w-full object-cover" />
+      <img src="/images/eugene-va-heathcare-center-01-1440x785.jpg" alt="Hình ảnh phòng khám" class="rounded-lg shadow-md my-6 w-full object-cover" />
       <h3 class="text-2xl font-bold mt-6 mb-3 text-emerald-700">Sứ mệnh của chúng tôi</h3>
       <p class="mb-4">Sứ mệnh của HealthCare Center là cung cấp dịch vụ y tế xuất sắc, dễ tiếp cận và giá cả hợp lý cho mọi người. Chúng tôi không ngừng nỗ lực cải tiến chất lượng dịch vụ, ứng dụng công nghệ tiên tiến và xây dựng một môi trường y tế thân thiện, an toàn và chuyên nghiệp.</p>
       <h3 class="text-2xl font-bold mt-6 mb-3 text-emerald-700">Giá trị cốt lõi</h3>
@@ -28,12 +28,12 @@ export const getServicesData = async () => {
     console.log("API: Fetching services data...");
     await new Promise(resolve => setTimeout(resolve, 800));
     return [
-        { id: "svc001", name: "Khám tổng quát", description: "Kiểm tra sức khỏe toàn diện, phát hiện sớm các nguy cơ bệnh lý.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=General+Checkup" },
-        { id: "svc002", name: "Nha khoa thẩm mỹ", description: "Cải thiện nụ cười với các dịch vụ tẩy trắng, bọc răng sứ, niềng răng.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=Cosmetic+Dentistry" },
-        { id: "svc003", name: "Khám chuyên khoa Mắt", description: "Chẩn đoán và điều trị các bệnh về mắt, đo thị lực, tư vấn kính thuốc.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=Ophthalmology" },
-        { id: "svc004", name: "Tư vấn dinh dưỡng", description: "Xây dựng chế độ ăn uống khoa học, phù hợp với thể trạng và bệnh lý.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=Nutrition+Consulting" },
-        { id: "svc005", name: "Vật lý trị liệu", description: "Phục hồi chức năng vận động sau chấn thương hoặc do bệnh lý xương khớp.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=Physiotherapy" },
-        { id: "svc006", name: "Xét nghiệm y khoa", description: "Cung cấp các dịch vụ xét nghiệm máu, nước tiểu... chính xác và nhanh chóng.", imageUrl: "https://placehold.co/600x400/a7f3d0/14532d?text=Lab+Tests" },
+        { id: "svc001", name: "Khám tổng quát", description: "Kiểm tra sức khỏe toàn diện, phát hiện sớm các nguy cơ bệnh lý.", imageUrl: "/images/kham-tong-quat-1.jpg" },
+        { id: "svc002", name: "Nha khoa thẩm mỹ", description: "Cải thiện nụ cười với các dịch vụ tẩy trắng, bọc răng sứ, niềng răng.", imageUrl: "/images/ranghammat.jpg" },
+        { id: "svc003", name: "Khám chuyên khoa Mắt", description: "Chẩn đoán và điều trị các bệnh về mắt, đo thị lực, tư vấn kính thuốc.", imageUrl: "/images/khammat.jpg" },
+        { id: "svc004", name: "Tư vấn dinh dưỡng", description: "Xây dựng chế độ ăn uống khoa học, phù hợp với thể trạng và bệnh lý.", imageUrl: "/images/dinhduong.jpg" },
+        { id: "svc005", name: "Vật lý trị liệu", description: "Phục hồi chức năng vận động sau chấn thương hoặc do bệnh lý xương khớp.", imageUrl: "/images/vatlitrilieu.jpg" },
+        { id: "svc006", name: "Xét nghiệm y khoa", description: "Cung cấp các dịch vụ xét nghiệm máu, nước tiểu... chính xác và nhanh chóng.", imageUrl: "/images/xetnghiem.jpg" },
     ];
 };
 

@@ -14,7 +14,7 @@ import {
 
 const Footer = () => {
     return (
-        <footer className="select-none bg-primary text-primary-foreground">
+        <footer className="bg-teal-600 dark:text-teal-400select-none bg-primary text-primary-foreground">
             {/* Tăng padding dọc (py-20) để thoáng hơn */}
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
                 {/* Giảm gap một chút để các cột gần nhau hơn, tạo cảm giác cân đối */}

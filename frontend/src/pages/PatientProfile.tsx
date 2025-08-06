@@ -5,9 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Droplet, ShieldAlert, Stethoscope, FileText, PhoneCall } from 'lucide-react';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import { User, Droplet, ShieldAlert, Stethoscope, PhoneCall } from 'lucide-react';
+import Layout from '@/components/layout/Layout'; // <-- 1. Import Layout chung
 import { patientProfileApi } from '@/api/patientProfile';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { EditProfileDialog } from '@/components/features/EditProfileDialog';
@@ -29,9 +28,10 @@ const PatientProfilePage = () => {
     const canEdit = currentUserData?.user?.role === 'Admin';
 
     return (
-        <div className="min-h-screen bg-background">
-            <Header />
-            <main className="container mx-auto py-10 px-4">
+        // 2. Bọc toàn bộ trang bằng component Layout
+        <Layout>
+            {/* 3. Bỏ thẻ <main>, thay bằng div vì Layout đã có <main> với padding đúng */}
+            <div className="container mx-auto py-10 px-4">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold">
                         Patient Profile: {profile?.patient?.firstName} {profile?.patient?.lastName}
@@ -48,10 +48,8 @@ const PatientProfilePage = () => {
                         <p>This patient does not have a profile yet.</p>
                     </div>
                 ) : (
-                    // --- BỐ CỤC MỚI VỚI NHIỀU CARD HƠN ---
                     <div className="grid lg:grid-cols-3 gap-8">
-
-                        {/* --- CỘT BÊN TRÁI: THÔNG TIN CƠ BẢN VÀ KHẨN CẤP --- */}
+                        {/* CỘT BÊN TRÁI: THÔNG TIN CƠ BẢN VÀ KHẨN CẤP */}
                         <div className="lg:col-span-1 space-y-8">
                             <Card>
                                 <CardHeader><CardTitle className="flex items-center gap-2"><User /> Basic Information</CardTitle></CardHeader>
@@ -88,7 +86,7 @@ const PatientProfilePage = () => {
                             </Card>
                         </div>
 
-                        {/* --- CỘT BÊN PHẢI: TIỀN SỬ BỆNH ÁN CHI TIẾT --- */}
+                        {/* CỘT BÊN PHẢI: TIỀN SỬ BỆNH ÁN CHI TIẾT */}
                         <div className="lg:col-span-2">
                             <Card>
                                 <CardHeader>
@@ -115,12 +113,10 @@ const PatientProfilePage = () => {
                                 </CardContent>
                             </Card>
                         </div>
-
                     </div>
                 )}
-            </main>
-            <Footer />
-        </div>
+            </div>
+        </Layout>
     );
 };
 

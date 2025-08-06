@@ -1,6 +1,5 @@
-
 // src/api/doctors.ts
-import { apiUploadRequest } from './config';
+import { apiRequest, apiUploadRequest } from './config'; // Thêm apiRequest
 import type { User } from './types';
 
 export interface AddDoctorRequest {
@@ -17,7 +16,20 @@ export interface AddDoctorRequest {
 }
 
 export const doctorApi = {
-    // Add new doctor (admin only)
+    /**
+     * Lấy danh sách tất cả các bác sĩ.
+     * @returns Promise<{ doctors: User[] }>
+     */
+    getAllDoctors: async () => {
+        // Gọi đến API cuối cùng và chính xác: /api/v1/users/doctors
+        return apiRequest<{ doctors: User[] }>('/api/v1/users/doctors');
+    },
+
+    /**
+     * Thêm một bác sĩ mới (chỉ dành cho Admin).
+     * @param data Dữ liệu của bác sĩ mới
+     * @returns Promise<{ doctor: User }>
+     */
     addNewDoctor: async (data: AddDoctorRequest) => {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
@@ -29,6 +41,7 @@ export const doctorApi = {
         });
         formData.append('role', 'Doctor');
 
+        // Endpoint này có thể cần được điều chỉnh cho phù hợp với router của bạn
         return apiUploadRequest<{ doctor: User }>('/user/doctor/addnew', formData);
     },
 };
