@@ -15,7 +15,18 @@ export const useAuth = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
 
+    const handleSocialAuth = async (token: string) => {
+        // 1. Lưu token nhận được từ URL vào localStorage
+        localStorage.setItem('authToken', token);
 
+        // 2. Vô hiệu hóa cache cũ và yêu cầu React Query fetch lại dữ liệu user
+        // Interceptor của axios sẽ tự động đính kèm token mới vào request này.
+        await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+
+        // 3. Điều hướng người dùng đến trang chính
+        navigate('/dashboard');
+        toast({ title: "Login Successful", description: "Welcome to MediFlow!" });
+    };
 
     const loginMutation = useMutation({
         mutationFn: authApi.login,
@@ -103,6 +114,8 @@ export const useAuth = () => {
         isLogouting: logoutMutation.isPending,
         loginMutation: loginMutation,
         isLoginMutation: loginMutation.isPending,
+        handleSocialAuth,
+
     };
 };
 export const useCurrentUser = () => {
@@ -111,5 +124,7 @@ export const useCurrentUser = () => {
         queryFn: authApi.getUserDetails, // Gọi hàm không cần tham số
         retry: false,
         refetchOnWindowFocus: false,
+        enabled: !!localStorage.getItem('authToken'), // Chỉ chạy query này nếu có token
+
     });
 };

@@ -11,6 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Mail, Lock, UserCog, Stethoscope, User as PatientIcon } from 'lucide-react';
 
+// --- CÁC ICON MẠNG XÃ HỘI MỚI (bạn sẽ tạo các file này ở bước sau) ---
+import { IconGoogle } from '@/components/icons/IconGoogle';
+import { IconGithub } from '@/components/icons/IconGithub';
+import { IconFacebook } from '@/components/icons/IconFacebook';
 // --- AUTH LOGIC & TYPES (KHÔNG THAY ĐỔI) ---
 import { useAuth, LoginCredentials } from '@/hooks/useAuth';
 
@@ -46,6 +50,7 @@ const LoginForm = ({ onSubmit, isLoggingIn }: { onSubmit: (credentials: LoginCre
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<'Patient' | 'Doctor' | 'Admin'>('Patient');
     const [showPassword, setShowPassword] = useState(false);
+    const backendUrl = `${import.meta.env.VITE_API_URL}${import.meta.env.VITE_API_BASE}`;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,6 +117,28 @@ const LoginForm = ({ onSubmit, isLoggingIn }: { onSubmit: (credentials: LoginCre
                         {isLoggingIn ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Signing In...</> : 'Sign In'}
                     </Button>
                 </form>
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                            Or continue with
+                        </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/google`}>
+                        <IconGoogle className="mr-2 h-5 w-5" /> Google
+                    </Button>
+                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/github`}>
+                        <IconGithub className="mr-2 h-5 w-5" /> GitHub
+                    </Button>
+                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/facebook`}>
+                        <IconFacebook className="mr-2 h-5 w-5" /> Facebook
+                    </Button>
+                </div>
             </CardContent>
             <CardFooter>
                 <p className="text-center text-sm text-muted-foreground w-full">

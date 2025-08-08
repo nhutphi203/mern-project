@@ -18,7 +18,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import Contact from './pages/Contact';
 import BookAppointment from './pages/BookAppointment';
 import PatientProfilePage from './pages/PatientProfile';
-
 // Component này chứa logic điều hướng và các Routes
 const AppContent = () => {
   // Logic này đã đúng, không cần thay đổi
