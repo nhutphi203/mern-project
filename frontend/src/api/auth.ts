@@ -7,7 +7,7 @@ export const authApi = {
     // Đăng ký Patient
     register: async (data: RegisterRequest) => {
         // Trỏ đến endpoint /register mới
-        return apiRequest('/api/v1/user/register', {
+        return apiRequest('/api/v1/users/register', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -15,22 +15,22 @@ export const authApi = {
     // Đăng nhập
     login: async (data: LoginRequest) => {
         // Thêm /api/v1/
-        return apiRequest<{ user: User; token: string }>('/api/v1/user/login', {
+        return apiRequest<{ user: User; token: string }>('/api/v1/users/login', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
 
     getUserDetails: async () => {
-        return apiRequest<{ user: User }>(`/api/v1/user/me`); // Gọi đến endpoint mới
+        return apiRequest<{ user: User }>(`/api/v1/users/me`); // Gọi đến endpoint mới
     },
     logout: async () => {
-        return apiRequest<MessageResponse>('/api/v1/user/logout'); // Gọi đến endpoint mới
+        return apiRequest<MessageResponse>('/api/v1/users/logout'); // Gọi đến endpoint mới
     },
     // Thêm Admin mới
     addNewAdmin: async (data: Omit<RegisterRequest, 'role'>) => {
         // Thêm /api/v1/
-        return apiRequest('/api/v1/user/admin/addnew', {
+        return apiRequest('/api/v1/users/admin/addnew', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -39,6 +39,6 @@ export const authApi = {
     // Lấy danh sách bác sĩ
     getAllDoctors: async () => {
         // Thêm /api/v1/
-        return apiRequest<{ doctors: User[] }>('/api/v1/user/doctors');
+        return apiRequest<{ doctors: User[] }>('/api/v1/users/doctors');
     },
 };
