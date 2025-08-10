@@ -32,6 +32,11 @@ const medicalRecordVersionSchema = new mongoose.Schema({
 
 
 const medicalRecordSchema = new mongoose.Schema({
+    appointmentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Appointment',
+        required: true,
+    },
     patientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -42,44 +47,31 @@ const medicalRecordSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    appointmentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Appointment',
+    fileName: {
+        type: String,
         required: true,
     },
-    // Thông tin hiện tại
-    diagnosis: {
+    fileUrl: {
         type: String,
-        required: [true, "Diagnosis is required."],
+        required: true,
     },
-    symptoms: {
+    fileType: {
         type: String,
-        required: [true, "Symptoms are required."],
+        required: true,
     },
-    treatmentPlan: {
-        type: String,
-        required: [true, "Treatment plan is required."],
-    },
-    notes: {
-        type: String,
-    },
-    // Hệ thống quản lý phiên bản
-    currentVersion: {
+    fileSize: {
         type: Number,
-        default: 1,
+        required: true,
     },
-    versions: [medicalRecordVersionSchema], // Mảng lưu trữ các phiên bản cũ
-    createdAt: {
-        type: Date,
-        default: Date.now,
+    cloudinary_id: {
+        type: String,
+        required: true,
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    }
-}, {
-    timestamps: true // Tự động cập nhật createdAt và updatedAt
-});
+    description: {
+        type: String,
+    },
+}, { timestamps: true });
+
 
 // Middleware: Trước khi lưu một bản ghi được cập nhật, tạo một phiên bản mới
 medicalRecordSchema.pre('findOneAndUpdate', async function (next) {

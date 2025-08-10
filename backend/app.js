@@ -13,6 +13,7 @@ import userRouter from "./router/userRouter.js";
 import appointmentRouter from "./router/appointmentRouter.js";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 import prescriptionRouter from './router/prescriptionRouter.js';
+import medicalRecordRouter from "./router/medicalRecordRouter.js";
 
 // Dòng này sẽ được chạy SAU KHI dotenv đã được nạp ở server.js
 import "./config/passport.config.js";
@@ -39,6 +40,8 @@ app.use("/api/v1/prescriptions", prescriptionRouter);
 dbConnection();
 
 // Sử dụng các router
+app.use("/api/v1/medical-records", medicalRecordRouter);
+
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/appointment", appointmentRouter);
 app.use("/api/v1/users", userRouter);

@@ -102,7 +102,22 @@ export const getMyAppointments = catchAsyncErrors(async (req, res, next) => {
     });
 });
 // === KẾT THÚC PHẦN MỚI ===
+export const getAppointmentById = catchAsyncErrors(async (req, res, next) => {
+    const { id } = req.params;
 
+    const appointment = await Appointment.findById(id)
+        .populate('patientId', 'firstName lastName email')
+        .populate('doctorId', 'firstName lastName doctorDepartment');
+
+    if (!appointment) {
+        return next(new ErrorHandler("Appointment not found", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        appointment,
+    });
+});
 // Controller để Admin cập nhật trạng thái
 export const updateAppointmentStatus = catchAsyncErrors(async (req, res, next) => {
     const { id } = req.params;
@@ -121,7 +136,30 @@ export const updateAppointmentStatus = catchAsyncErrors(async (req, res, next) =
         appointment,
     });
 });
+export const getAppointmentStats = catchAsyncErrors(async (req, res, next) => {
+    // Sử dụng Promise.all để chạy các câu lệnh đếm song song, tăng hiệu năng
+    const [
+        totalAppointments,
+        pendingAppointments,
+        acceptedAppointments,
+        rejectedAppointments,
+    ] = await Promise.all([
+        Appointment.countDocuments(),
+        Appointment.countDocuments({ status: "Pending" }),
+        Appointment.countDocuments({ status: "Accepted" }),
+        Appointment.countDocuments({ status: "Rejected" }),
+    ]);
 
+    res.status(200).json({
+        success: true,
+        stats: {
+            totalAppointments,
+            pendingAppointments,
+            acceptedAppointments,
+            rejectedAppointments,
+        },
+    });
+});
 // Controller để Admin xóa lịch hẹn
 export const deleteAppointment = catchAsyncErrors(async (req, res, next) => {
     const { id } = req.params;

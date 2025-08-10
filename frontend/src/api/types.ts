@@ -193,6 +193,22 @@ export interface AppointmentStats {
     duration: string;
     notes?: string;
 }
+export interface MediaRecord {
+    _id: string;
+    fileName: string;
+    fileUrl: string;
+    fileType: string; // MIME type, ví dụ: 'image/png', 'application/pdf'
+    fileSize: number; // Kích thước file tính bằng bytes
+    description: string;
+    appointmentId: string;
+    patientId: string;
+    doctorId: { // Populate thông tin người upload
+        _id: string;
+        firstName: string;
+        lastName: string;
+    };
+    createdAt: string;
+}
 
 // Định nghĩa cấu trúc cho một đơn thuốc (dữ liệu gốc từ DB)
 export interface Prescription {

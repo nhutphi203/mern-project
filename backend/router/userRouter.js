@@ -13,7 +13,7 @@ import {
     addNewDoctor,
     verifyOtp,
     resendOtp,
-    getUserById
+    getUserById,
 } from '../controller/userController.js';
 
 import { isAdminAuthenticated, isPatientAuthenticated, isAuthenticated } from "../middlewares/auth.js";
@@ -53,7 +53,7 @@ router.post('/auth/token-exchange', (req, res) => { /* ... code của bạn ... 
 // --- CÁC ROUTE GET (CỤ THỂ) ---
 router.get("/doctors", getAllDoctors);
 router.get("/logout", isAuthenticated, logout);
-
+router.get("")
 // FIX: Sửa lại route để khớp với frontend.
 // Frontend đang gọi '/api/v1/users/me' để lấy thông tin người dùng hiện tại.
 router.get("/me", isAuthenticated, getUserDetails);

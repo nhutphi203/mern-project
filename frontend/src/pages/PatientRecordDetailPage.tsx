@@ -120,13 +120,18 @@ const PatientRecordDetailPage = () => {
             setIsLoading(true);
 
             try {
-                // Fetch patient info
-                const patientResponse = await api.get(`/api/v1/users/${patientId}`);
-                if (patientResponse.data?.user) {
-                    setPatientInfo(patientResponse.data.user);
+                // Fetch patient info with error handling
+                try {
+                    const patientResponse = await api.get(`/api/v1/users/${patientId}`);
+                    if (patientResponse.data?.user) {
+                        setPatientInfo(patientResponse.data.user);
+                    }
+                } catch (error) {
+                    console.log("Patient info not available:", error);
+                    toast.error("Could not load patient information");
                 }
 
-                // Fetch appointment info
+                // Fetch appointment info with error handling
                 try {
                     const appointmentResponse = await api.get(`/api/v1/appointment/${appointmentId}`);
                     if (appointmentResponse.data?.appointment) {
@@ -134,9 +139,10 @@ const PatientRecordDetailPage = () => {
                     }
                 } catch (error) {
                     console.log("Appointment info not available:", error);
+                    // Don't show error toast for appointment - it's optional
                 }
 
-                // Fetch medical record
+                // Fetch medical record with graceful 404 handling
                 try {
                     const recordResponse = await api.get(`/api/v1/medical-records/appointment/${appointmentId}`);
                     if (recordResponse.data?.record) {
@@ -149,11 +155,11 @@ const PatientRecordDetailPage = () => {
                         console.log("No medical record found. Ready to create new one.");
                         setIsEditing(true); // Auto enable editing for new records
                     } else {
-                        throw recordError;
+                        console.error("Error fetching medical record:", recordError);
                     }
                 }
 
-                // Fetch patient medical history
+                // Fetch patient medical history with graceful handling
                 try {
                     const historyResponse = await api.get(`/api/v1/medical-records/patient/${patientId}/history`);
                     if (historyResponse.data?.records) {
@@ -161,11 +167,12 @@ const PatientRecordDetailPage = () => {
                     }
                 } catch (error) {
                     console.log("Patient history not available:", error);
+                    setPatientHistory([]); // Set empty array instead of keeping null
                 }
 
             } catch (error) {
                 console.error("Error loading data:", error);
-                toast.error("Không thể tải dữ liệu trang.");
+                toast.error("Some data could not be loaded. You can still create medical records.");
             } finally {
                 setIsLoading(false);
             }
@@ -521,8 +528,10 @@ const PatientRecordDetailPage = () => {
                 {/* Media & Files Tab */}
                 <TabsContent value="media">
                     {appointmentId ? (
-                        <MediaRecordManager appointmentId={appointmentId} />
-                    ) : (
+                        <MediaRecordManager
+                            appointmentId={appointmentId}
+                            patientId={patientId}
+                        />) : (
                         <Card className="text-center p-8">
                             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="font-medium mb-2">Appointment Required</h3>
