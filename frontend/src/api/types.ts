@@ -186,4 +186,29 @@ export interface AppointmentFilter {
 export interface AppointmentStats {
     byStatus: Array<{ _id: string; count: number }>;
     byDepartment: Array<{ _id: string; count: number }>;
+}export interface Medication {
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    notes?: string;
+}
+
+// Định nghĩa cấu trúc cho một đơn thuốc (dữ liệu gốc từ DB)
+export interface Prescription {
+    _id: string;
+    medicalRecordId: string;
+    patientId: string;
+    doctorId: string;
+    medications: Medication[];
+    digitalSignature?: string;
+    status: 'New' | 'Dispensed' | 'Cancelled';
+    dispensedDate?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Định nghĩa cấu trúc cho đơn thuốc sau khi đã populate thông tin bác sĩ
+export interface PopulatedPrescription extends Omit<Prescription, 'doctorId'> {
+    doctorId: PopulatedDoctor;
 }

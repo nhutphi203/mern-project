@@ -12,6 +12,7 @@ import messageRouter from "./router/messageRouter.js";
 import userRouter from "./router/userRouter.js";
 import appointmentRouter from "./router/appointmentRouter.js";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
+import prescriptionRouter from './router/prescriptionRouter.js';
 
 // Dòng này sẽ được chạy SAU KHI dotenv đã được nạp ở server.js
 import "./config/passport.config.js";
@@ -32,6 +33,7 @@ app.use(fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp/",
 }));
+app.use("/api/v1/prescriptions", prescriptionRouter);
 
 // Kết nối DB
 dbConnection();

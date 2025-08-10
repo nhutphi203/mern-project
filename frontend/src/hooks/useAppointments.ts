@@ -18,89 +18,77 @@ export const useAppointments = (filter?: AppointmentFilter) => {
 
     const userRole = currentUser?.user?.role;
 
-    // Get appointments based on user role
     const appointmentsQuery = useQuery({
         queryKey: ['appointments', userRole, filter],
         queryFn: () => {
-            // Nếu có filter, sử dụng filterAppointments API
             if (filter && Object.keys(filter).length > 0) {
                 return appointmentApi.filterAppointments(filter);
             }
 
-            // Nếu không có filter, sử dụng API theo role
             switch (userRole) {
                 case 'Admin':
                     return appointmentApi.getAllAppointments();
                 case 'Patient':
-                    return appointmentApi.getMyAppointments();
                 case 'Doctor':
-                    return appointmentApi.getDoctorAppointments();
+                    return appointmentApi.getMyAppointments();
                 default:
-                    throw new Error('Unauthorized access');
+                    return Promise.resolve({ appointments: [] });
             }
         },
-        select: (data) => data.appointments,
         enabled: !!userRole,
-        retry: false,
     });
 
-    // Get appointment statistics (Admin only)
+    // === THÊM LẠI LOGIC LẤY THỐNG KÊ ===
     const statsQuery = useQuery({
         queryKey: ['appointment-stats'],
         queryFn: appointmentApi.getAppointmentStats,
+        // Chỉ chạy query này khi người dùng là Admin
         enabled: userRole === 'Admin',
-        select: (data) => data.stats,
     });
+    // === KẾT THÚC PHẦN THÊM MỚI ===
+
 
     const createAppointmentMutation = useMutation({
-        mutationFn: (data: AppointmentRequest) => appointmentApi.createAppointment(data),
+        mutationFn: appointmentApi.createAppointment,
         onSuccess: () => {
             toast({
-                title: "Appointment Booked",
-                description: "Your appointment has been successfully scheduled.",
+                title: "Success",
+                description: "Appointment booked successfully! Please wait for admin confirmation.",
             });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
         },
-        onError: (error: unknown) => {
-            const message = error instanceof ApiError ? error.message : "Booking failed. Please try again.";
+        onError: (error: ApiError) => {
             toast({
                 title: "Booking Failed",
-                description: message,
+                description: error.message || "Could not book appointment. Please try again.",
                 variant: "destructive",
             });
-        }
+        },
     });
 
     const updateStatusMutation = useMutation({
         mutationFn: ({ id, status }: { id: string; status: Appointment['status'] }) =>
             appointmentApi.updateAppointmentStatus(id, status),
         onSuccess: () => {
-            toast({
-                title: "Status Updated",
-                description: "Appointment status has been updated successfully.",
-            });
+            toast({ title: "Success", description: "Appointment status updated." });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] }); // Làm mới stats
         },
-        onError: (error: unknown) => {
-            const message = error instanceof ApiError ? error.message : "Update failed. Please try again.";
+        onError: (error: ApiError) => {
             toast({
                 title: "Update Failed",
-                description: message,
+                description: error.message || "Could not update status.",
                 variant: "destructive",
             });
-        }
+        },
     });
 
     const deleteAppointmentMutation = useMutation({
         mutationFn: appointmentApi.deleteAppointment,
         onSuccess: () => {
-            toast({
-                title: "Appointment Deleted",
-                description: "The appointment has been removed successfully.",
-            });
+            toast({ title: "Success", description: "Appointment deleted successfully." });
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['appointment-stats'] }); // Làm mới stats
         },
         onError: (error: unknown) => {
             const message = error instanceof ApiError ? error.message : "Deletion failed. Please try again.";
@@ -113,34 +101,23 @@ export const useAppointments = (filter?: AppointmentFilter) => {
     });
 
     return {
-        // Data and status for displaying appointments
-        appointments: appointmentsQuery.data as PopulatedAppointment[] | undefined,
+        appointments: appointmentsQuery.data?.appointments as PopulatedAppointment[] | undefined,
         isLoading: appointmentsQuery.isLoading,
         error: appointmentsQuery.error,
         fetchAppointments: appointmentsQuery.refetch,
 
-        // Statistics (Admin only)
-        stats: statsQuery.data,
+        // === THÊM LẠI CÁC GIÁ TRỊ THỐNG KÊ VÀO RETURN ===
+        stats: statsQuery.data?.stats,
         isLoadingStats: statsQuery.isLoading,
         statsError: statsQuery.error,
+        // === KẾT THÚC PHẦN THÊM MỚI ===
 
-        // Functions to modify appointments
         createAppointment: createAppointmentMutation.mutate,
         updateStatus: updateStatusMutation.mutate,
         deleteAppointment: deleteAppointmentMutation.mutate,
 
-        // Status flags for UI feedback
         isCreating: createAppointmentMutation.isPending,
         isUpdating: updateStatusMutation.isPending,
         isDeleting: deleteAppointmentMutation.isPending,
     };
-};
-
-// Hook riêng cho filter appointments
-export const useFilteredAppointments = (filter: AppointmentFilter) => {
-    return useQuery({
-        queryKey: ['filtered-appointments', filter],
-        queryFn: () => appointmentApi.filterAppointments(filter),
-        enabled: Object.keys(filter).length > 0,
-    });
 };

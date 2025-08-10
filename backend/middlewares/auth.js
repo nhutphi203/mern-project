@@ -69,3 +69,9 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
         next();
     })(req, res, next);
 });
+export const isDoctor = (req, res, next) => {
+    if (req.user.role !== 'Doctor') {
+        return next(new ErrorHandler(`Forbidden. Your role (${req.user.role}) is not authorized for this resource.`, 403));
+    }
+    next();
+};

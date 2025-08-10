@@ -129,13 +129,20 @@ const LoginForm = ({ onSubmit, isLoggingIn }: { onSubmit: (credentials: LoginCre
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/google`}>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            const googleLoginUrl = 'http://localhost:4000/api/v1/users/auth/google';
+                            console.log('Đang chuyển hướng đến:', googleLoginUrl);
+                            window.location.href = googleLoginUrl;
+                        }}
+                    >
                         <IconGoogle className="mr-2 h-5 w-5" /> Google
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/github`}>
+                    <Button variant="outline" onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/v1/users/auth/github`}>
                         <IconGithub className="mr-2 h-5 w-5" /> GitHub
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `${backendUrl}/users/auth/facebook`}>
+                    <Button variant="outline" onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/v1/users/auth/facebook`}>
                         <IconFacebook className="mr-2 h-5 w-5" /> Facebook
                     </Button>
                 </div>

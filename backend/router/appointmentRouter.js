@@ -1,45 +1,27 @@
-// backend/router/appointmentRouter.js
 import express from 'express';
 import {
     deleteAppointment,
     getAllAppointments,
     postAppointment,
     updateAppointmentStatus,
-    getMyAppointments,
-    getDoctorAppointments,
-    getAppointmentsByFilter,
-    getAppointmentStats
+    getMyAppointments, // Import controller mới
 } from '../controller/appointmentController.js';
 import {
+    isAuthenticated, // Import middleware chung
     isAdminAuthenticated,
     isPatientAuthenticated,
-    isDoctorAuthenticated
 } from '../middlewares/auth.js'
 
 const router = express.Router();
 
-// Bệnh nhân đặt lịch hẹn mới
+// Định nghĩa các route
 router.post("/post", isPatientAuthenticated, postAppointment);
-
-// Bệnh nhân xem lịch hẹn của chính mình
-router.get("/my-appointments", isPatientAuthenticated, getMyAppointments);
-
-// Admin xem tất cả lịch hẹn
 router.get("/getall", isAdminAuthenticated, getAllAppointments);
-
-// Bác sĩ xem lịch hẹn được gán cho mình
-router.get("/doctor-appointments", isDoctorAuthenticated, getDoctorAppointments);
-
-// Admin/Doctor filter appointments (API mới)
-router.get("/filter", isAdminAuthenticated, getAppointmentsByFilter);
-
-// Admin xem thống kê (API mới)
-router.get("/stats", isAdminAuthenticated, getAppointmentStats);
-
-// Admin cập nhật trạng thái lịch hẹn
 router.put("/update/:id", isAdminAuthenticated, updateAppointmentStatus);
-
-// Admin xóa lịch hẹn
 router.delete("/delete/:id", isAdminAuthenticated, deleteAppointment);
+
+// === ROUTE MỚI CHO BỆNH NHÂN VÀ BÁC SĨ ===
+// Route này cho phép cả Patient và Doctor truy cập
+router.get("/my-appointments", isAuthenticated, getMyAppointments);
 
 export default router;

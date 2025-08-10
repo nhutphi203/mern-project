@@ -1,10 +1,10 @@
-// backend/routes/user.js - Phiên bản hoàn chỉnh
+// backend/routes/user.js - Fixed Google Callback
 
 import express from 'express';
-import passport from 'passport'; // <-- Thêm passport
-import jwt from 'jsonwebtoken';   // <-- Thêm jsonwebtoken
+import passport from 'passport';
+import jwt from 'jsonwebtoken';
 
-// Import các controller hiện có của bạn
+// Import các controller hiện có
 import {
     login,
     register,
@@ -21,96 +21,161 @@ import { isAdminAuthenticated, isPatientAuthenticated, isAuthenticated } from ".
 
 const router = express.Router();
 
-// --- HÀM TIỆN ÍCH TẠO TOKEN ---
-// Bạn có thể đặt hàm này trong file utils và import vào nếu muốn
+// HÀM TẠO TOKEN (giữ nguyên)
 const createToken = (user) => {
     return jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET_KEY, // Đảm bảo có khóa này trong .env
-        { expiresIn: '1d' }
+        {
+            id: user._id,
+            role: user.role,
+            authType: user.authType
+        },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: process.env.JWT_EXPIRES || '7d' }
     );
 };
+const setCookie = (res, user, token) => {
+    const cookieName = `${user.role.toLowerCase()}Token`;
+    const cookieOptions = {
+        expires: new Date(Date.now() + parseInt(process.env.COOKIE_EXPIRE || '7') * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+    };
 
-// ==============================================
-// --- CÁC ROUTE HIỆN CÓ CỦA BẠN (GIỮ NGUYÊN) ---
-// ==============================================
+    res.cookie(cookieName, token, cookieOptions);
+};
+
+
+// Routes hiện có (giữ nguyên)
 router.post("/register", register);
 router.post("/login", login);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
 router.get("/doctors", getAllDoctors);
-router.get("/me", getUserDetails);
+router.get("/me", isAuthenticated, getUserDetails);
 router.get("/logout", isAuthenticated, logout);
 router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
 
-// ==============================================
-// --- CÁC ROUTE MỚI CHO SOCIAL LOGIN ---
-// ==============================================
+// === FIXED GOOGLE LOGIN ===
+router.get('/auth/google', passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false
+}));
 
-// --- GOOGLE ---
-// 1. Bắt đầu đăng nhập: Chuyển hướng đến Google
-router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+// 🔧 FIX: Google callback - SET COOKIE PROPERLY
 
-router.get(
-    '/auth/google/callback',
+router.get('/auth/google/callback',
     passport.authenticate('google', {
-        failureRedirect: `${process.env.FRONTEND_URL}/login?error=social_failed`,
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
         session: false,
     }),
     (req, res) => {
-        // --- BẮT ĐẦU THAY ĐỔI ---
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user_data`);
+            }
 
-        // 1. Lấy user từ passport
-        const user = req.user;
+            // Tạo JWT token
+            const token = createToken(user);
 
-        // 2. Tạo token
-        const token = createToken(user);
+            // Set cookie
+            setCookie(res, user, token);
 
-        // 3. Xác định tên cookie dựa trên vai trò
-        const cookieName = `${user.role.toLowerCase()}Token`;
+            // ✅ IMPROVED: Redirect based on user role
+            const redirectPath = user.role === 'Admin' ? '/admin-dashboard' : '/dashboard';
 
-        // 4. Gửi cookie về cho trình duyệt
-        res.cookie(cookieName, token, {
-            expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
-            httpOnly: true,
-            // secure: true, // Bật khi deploy
-            // sameSite: "None" // Bật khi deploy
-        });
-
-        // 5. Chuyển hướng thẳng về trang dashboard
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
-
-        // --- KẾT THÚC THAY ĐỔI ---
+            // Redirect to frontend with success
+            res.redirect(`${process.env.FRONTEND_URL}${redirectPath}?auth=success`);
+        } catch (error) {
+            console.error('Google OAuth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_error`);
+        }
     }
 );
 
-// --- FACEBOOK (Tương tự) ---
-router.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
-router.get(
-    '/auth/facebook/callback',
+router.get('/auth/facebook',
     passport.authenticate('facebook', {
-        failureRedirect: process.env.SOCIAL_LOGIN_FAILURE_REDIRECT,
+        scope: ['email'],
+        session: false
+    })
+);
+
+
+router.get('/auth/facebook/callback',
+    passport.authenticate('facebook', {
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook_auth_failed`,
         session: false,
     }),
     (req, res) => {
-        const token = createToken(req.user);
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user_data`);
+            }
+
+            const token = createToken(user);
+            setCookie(res, user, token);
+
+            const redirectPath = user.role === 'Admin' ? '/admin-dashboard' : '/dashboard';
+            res.redirect(`${process.env.FRONTEND_URL}${redirectPath}?auth=success`);
+        } catch (error) {
+            console.error('Facebook OAuth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_error`);
+        }
+    }
+);
+// --- GITHUB OAUTH ---
+router.get('/auth/github',
+    passport.authenticate('github', {
+        scope: ['user:email'],
+        session: false
+    })
+);
+
+router.get('/auth/github/callback',
+    passport.authenticate('github', {
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=github_auth_failed`,
+        session: false,
+    }),
+    (req, res) => {
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user_data`);
+            }
+
+            const token = createToken(user);
+            setCookie(res, user, token);
+
+            const redirectPath = user.role === 'Admin' ? '/admin-dashboard' : '/dashboard';
+            res.redirect(`${process.env.FRONTEND_URL}${redirectPath}?auth=success`);
+        } catch (error) {
+            console.error('GitHub OAuth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_error`);
+        }
     }
 );
 
-// --- GITHUB (Tương tự) ---
-router.get('/auth/github', passport.authenticate('github', { scope: ['user:email'], session: false }));
-router.get(
-    '/auth/github/callback',
-    passport.authenticate('github', {
-        failureRedirect: process.env.SOCIAL_LOGIN_FAILURE_REDIRECT,
-        session: false,
-    }),
-    (req, res) => {
-        const token = createToken(req.user);
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+// ✅ NEW: Manual token exchange endpoint (optional, for SPA flow)
+router.post('/auth/token-exchange', (req, res) => {
+    const { tempToken } = req.body;
+
+    try {
+        const decoded = jwt.verify(tempToken, process.env.JWT_SECRET_KEY);
+        // Return user data for frontend
+        res.json({
+            success: true,
+            user: decoded,
+            token: tempToken
+        });
+    } catch (error) {
+        res.status(401).json({
+            success: false,
+            message: 'Invalid token'
+        });
     }
-);
+});
 
 export default router;

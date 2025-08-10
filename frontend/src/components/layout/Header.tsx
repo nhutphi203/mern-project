@@ -76,6 +76,7 @@ const Header = () => {
         { to: "/services", label: "Services" },
         { to: "/doctors", label: "Doctors" },
         { to: "/contact", label: "Contact" },
+        { to: "/medical-records", label: "Medical Records" },
     ];
 
     return (

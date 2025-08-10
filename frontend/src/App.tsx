@@ -1,16 +1,15 @@
-import React, { useEffect } from 'react';
-// ❌ Dòng này KHÔNG được import 'BrowserRouter as Router'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useCurrentUser } from './hooks/useAuth';
+// src/App.tsx - FIXED VERSION
 
-// ✅ BƯỚC 1: Import Layout và các trang
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useCurrentUser } from './hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+
+// Layout and Pages
 import Layout from './components/layout/Layout';
-// import Home from './pages/Home'; // Xóa trang Home không còn sử dụng
 import AboutPage from './pages/About';
 import ServicesPage from './pages/Services';
 import DoctorsPage from './pages/Doctors';
-
-// Import các trang đã có
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -18,63 +17,145 @@ import AdminDashboard from './pages/AdminDashboard';
 import Contact from './pages/Contact';
 import BookAppointment from './pages/BookAppointment';
 import PatientProfilePage from './pages/PatientProfile';
-// Component này chứa logic điều hướng và các Routes
+import MedicalRecords from './pages/MedicalRecords'; // Import trang mới
+import DoctorDashboard from './pages/DoctorDashboard'; // 1. Import trang mới
+
 const AppContent = () => {
-  // Logic này đã đúng, không cần thay đổi
-  const { data: patientUser, isSuccess: isPatientSuccess } = useCurrentUser();
-  const { data: adminUser, isSuccess: isAdminSuccess } = useCurrentUser();
-
-  const currentUser = patientUser || adminUser;
-  const isSuccess = (patientUser && isPatientSuccess) || (adminUser && isAdminSuccess);
-
+  const { data: currentUser, isLoading, isError, error } = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
 
+  // 🔧 FIX: Handle social login success
   useEffect(() => {
-    // Log để kiểm tra
-    console.log("APP EFFECT:", { currentUser, isSuccess, pathname: location.pathname });
+    const authStatus = searchParams.get('auth');
+    const errorStatus = searchParams.get('error');
 
-    if (isSuccess && currentUser) {
-      // ✅ SỬA ĐỔI: Sau khi đăng nhập, bệnh nhân sẽ được chuyển đến trang chủ ('/')
-      const targetPath = currentUser.user.role === 'Admin' ? '/admin-dashboard' : '/';
+    if (authStatus === 'success') {
+      console.log('Social login success detected');
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome to MediFlow!',
+      });
+
+      // Clear the URL params
+      const newUrl = location.pathname;
+      window.history.replaceState({}, '', newUrl);
+
+      // Force refetch user data
+      // This is handled automatically by react-query when component mounts
+    }
+
+    if (errorStatus) {
+      const errorMessages = {
+        'social_failed': 'Social login failed. Please try again.',
+        'auth_failed': 'Authentication failed. Please try again.',
+        'server_error': 'Server error occurred. Please try again later.'
+      };
+
+      toast({
+        title: 'Login Failed',
+        description: errorMessages[errorStatus as keyof typeof errorMessages] || 'Unknown error occurred.',
+        variant: 'destructive',
+      });
+
+      // Clear error from URL
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, location.pathname, toast, navigate]);
+
+  // 🔧 FIX: Simplified redirect logic
+  useEffect(() => {
+    console.log("APP EFFECT:", {
+      currentUser: currentUser?.user,
+      isLoading,
+      isError,
+      pathname: location.pathname
+    });
+
+    // Don't redirect while loading
+    if (isLoading) return;
+
+    // If we have a user and they're on login/register page, redirect them
+    if (currentUser?.user) {
       if (location.pathname === '/login' || location.pathname === '/register') {
-        console.log(`Navigating to ${targetPath}...`);
+        const targetPath = currentUser.user.role === 'Admin' ? '/admin-dashboard' : '/dashboard';
+        console.log(`User authenticated, redirecting to ${targetPath}`);
         navigate(targetPath, { replace: true });
       }
     }
-  }, [currentUser, isSuccess, navigate, location.pathname]);
+
+    // If no user and trying to access protected routes, redirect to login
+    if (!currentUser?.user && isError) {
+      const protectedRoutes = ['/dashboard', '/admin-dashboard', '/book-appointment'];
+      const isProtectedRoute = protectedRoutes.some(route =>
+        location.pathname.startsWith(route)
+      );
+
+      if (isProtectedRoute) {
+        console.log('No user detected, redirecting to login');
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [currentUser, isLoading, isError, navigate, location.pathname]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    // ✅ BƯỚC 2: Cấu trúc lại Routes
     <Routes>
-      {/* Trang chủ của ứng dụng là Dashboard (yêu cầu đăng nhập) */}
-      <Route path="/" element={<Dashboard />} />
+      {/* Public routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-      {/* Các trang công khai sử dụng Layout chung (có Navbar và Footer) */}
+      {/* Public pages with layout */}
       <Route path="/about" element={<Layout><AboutPage /></Layout>} />
       <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
       <Route path="/doctors" element={<Layout><DoctorsPage /></Layout>} />
       <Route path="/contact" element={<Layout><Contact /></Layout>} />
+      <Route path="/medical-records" element={<Layout><MedicalRecords /></Layout>} />
 
-      {/* Các trang đăng nhập/đăng ký không có Layout chung */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
-      {/* Các trang yêu cầu đăng nhập khác */}
-      {/* Route /dashboard giờ có thể xóa hoặc trỏ về trang chủ */}
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
-      <Route path="/book-appointment" element={<BookAppointment />} />
+      {/* Protected routes */}
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route
+        path="/doctor-dashboard"
+        element={
+
+          <DoctorDashboard />
+        }
+      />
+      <Route path="/book-appointment" element={<BookAppointment />} />
       <Route path="/patient-profile/:patientId" element={<PatientProfilePage />} />
 
-      {/* Route cho trang không tồn tại */}
+      {/* Root route - redirect based on auth status */}
+      <Route
+        path="/"
+        element={
+          currentUser?.user
+            ? (currentUser.user.role === 'Admin'
+              ? <Navigate to="/admin-dashboard" replace />
+              : <Navigate to="/dashboard" replace />)
+            : <Navigate to="/login" replace />
+        }
+      />
+
+      {/* 404 */}
       <Route path="*" element={<Layout><div>404 - Page Not Found</div></Layout>} />
     </Routes>
   );
 };
 
-
-// Component App giờ chỉ cần trả về AppContent
 const App = () => {
   return <AppContent />;
 };

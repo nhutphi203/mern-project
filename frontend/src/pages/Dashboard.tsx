@@ -3,14 +3,14 @@
 import React, { useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCurrentUser, useAuth } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import {
-    Calendar, Clock, LogOut, Phone, HeartPulse, ArrowRight, PlusCircle, AlertTriangle
+    Calendar, Clock, LogOut, Phone, HeartPulse, ArrowRight, PlusCircle, AlertTriangle, ClipboardList
 } from 'lucide-react';
 
 // --- CÁC HELPER COMPONENTS ĐỂ GIÚP GIAO DIỆN SẠCH SẼ HƠN ---
@@ -146,7 +146,26 @@ const Dashboard = () => {
                                     </Button>
                                 </CardContent>
                             </Card>
-
+                            <Card className="flex flex-col justify-between">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3">
+                                        <ClipboardList className="h-6 w-6 text-blue-500" />
+                                        My Medical Records
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground">
+                                        View your past medical history, diagnoses, and prescriptions from your doctors.
+                                    </p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Link to="/medical-records" className="w-full">
+                                        <Button className="w-full">
+                                            View Records <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                </CardFooter>
+                            </Card>
                             {/* Quick Actions */}
                             <div className="space-y-4">
                                 <Link to="/book-appointment" className="block animate-fade-in" style={{ animationDelay: '0.2s' }}>
