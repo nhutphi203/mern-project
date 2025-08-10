@@ -1,3 +1,4 @@
+// PatientRecordDetailPage.tsx - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -82,22 +83,22 @@ const PatientRecordDetailPage = () => {
             setIsLoading(true);
 
             try {
-                // Bước 1: Luôn lấy thông tin bệnh nhân trước.
-                const patientResponse = await api.get(`/users/${patientId}`);
+                console.log("Fetching patient data for ID:", patientId);
+
+                // 🔧 FIX: Thêm /api/v1 vào URL
+                const patientResponse = await api.get(`/api/v1/users/${patientId}`);
                 console.log("Patient Response:", patientResponse.data);
-                // FIX: Sửa lại cách kiểm tra và lấy dữ liệu người dùng.
-                // Giả định API trả về { success: true, user: {...} }
+
                 if (patientResponse.data && patientResponse.data.user) {
                     setPatientInfo(patientResponse.data.user);
                 } else {
-                    // Nếu cấu trúc khác, ví dụ trả về trực tiếp user object trong data
-                    // setPatientInfo(patientResponse.data)
                     throw new Error("Không tìm thấy thông tin bệnh nhân hoặc cấu trúc dữ liệu không đúng.");
                 }
 
                 // Bước 2: Thử lấy hồ sơ bệnh án. Lỗi 404 ở đây là bình thường.
                 try {
-                    const recordResponse = await api.get(`/medical-records/appointment/${appointmentId}`);
+                    // 🔧 FIX: Thêm /api/v1 vào URL
+                    const recordResponse = await api.get(`/api/v1/medical-records/appointment/${appointmentId}`);
                     if (recordResponse.data && recordResponse.data.record) {
                         setMedicalRecord(recordResponse.data.record);
                         reset(recordResponse.data.record);
@@ -107,16 +108,13 @@ const PatientRecordDetailPage = () => {
                     if (apiRecordError.response && apiRecordError.response.status === 404) {
                         console.log("Chưa có hồ sơ bệnh án cho lịch hẹn này. Sẵn sàng tạo mới.");
                     } else {
-                        // Báo lỗi nếu có vấn đề khác ngoài 404
                         throw recordError;
                     }
                 }
             } catch (error) {
-                // Bắt các lỗi nghiêm trọng (vd: không tìm thấy bệnh nhân)
                 console.error("Lỗi nghiêm trọng khi tải dữ liệu:", error);
                 toast.error("Không thể tải dữ liệu trang.");
             } finally {
-                // Luôn đảm bảo dừng trạng thái loading
                 setIsLoading(false);
             }
         };
@@ -130,7 +128,8 @@ const PatientRecordDetailPage = () => {
             return;
         }
         try {
-            const response = await api.post('/medical-records', {
+            // 🔧 FIX: Thêm /api/v1 vào URL
+            const response = await api.post('/api/v1/medical-records', {
                 ...data,
                 patientId,
                 doctorId: doctorInfo.id,
@@ -139,6 +138,7 @@ const PatientRecordDetailPage = () => {
             setMedicalRecord(response.data.record);
             toast.success("Đã lưu hồ sơ bệnh án thành công!");
         } catch (error) {
+            console.error("Error saving medical record:", error);
             toast.error("Lỗi khi lưu hồ sơ bệnh án.");
         }
     };
