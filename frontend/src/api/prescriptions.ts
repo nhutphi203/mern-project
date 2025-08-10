@@ -18,26 +18,38 @@ export const prescriptionApi = {
      * @desc    Bác sĩ tạo một đơn thuốc mới
      * @param   data Dữ liệu đơn thuốc
      */
-    create: async (data: CreatePrescriptionRequest) => {
-        return apiRequest<{ prescription: Prescription }>('/api/v1/prescriptions', {
+
+    create: async (data) => {
+        return apiRequest('/api/v1/prescriptions', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
 
-    /**
-     * @desc    Lấy tất cả đơn thuốc của một hồ sơ bệnh án
-     * @param   recordId ID của hồ sơ bệnh án
-     */
-    getForRecord: async (recordId: string) => {
-        return apiRequest<{ prescriptions: PopulatedPrescription[] }>(`/api/v1/prescriptions/record/${recordId}`);
+    getForRecord: async (recordId) => {
+        return apiRequest(`/api/v1/prescriptions/record/${recordId}`);
     },
 
-    /**
-     * @desc    Lấy tất cả đơn thuốc của một bệnh nhân
-     * @param   patientId ID của bệnh nhân
-     */
-    getForPatient: async (patientId: string) => {
-        return apiRequest<{ prescriptions: PopulatedPrescription[] }>(`/api/v1/prescriptions/patient/${patientId}`);
+    getForPatient: async (patientId) => {
+        return apiRequest(`/api/v1/prescriptions/patient/${patientId}`);
+    },
+
+    // NEW methods for appointment-based prescriptions
+    getForAppointment: async (appointmentId) => {
+        return apiRequest(`/api/v1/prescriptions?appointmentId=${appointmentId}`);
+    },
+
+    createForAppointment: async (data) => {
+        return apiRequest('/api/v1/prescriptions/appointment', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    sign: async (prescriptionId, digitalSignature) => {
+        return apiRequest(`/api/v1/prescriptions/${prescriptionId}/sign`, {
+            method: 'PUT',
+            body: JSON.stringify({ digitalSignature }),
+        });
     },
 };

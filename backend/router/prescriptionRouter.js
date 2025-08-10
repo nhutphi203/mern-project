@@ -3,24 +3,28 @@ import {
     createPrescription,
     getPrescriptionsForRecord,
     getPrescriptionsForPatient,
+    updatePrescription,
+    deletePrescription
 } from '../controller/prescriptionController.js';
 import { isAuthenticated, isDoctor } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// @route   POST /api/v1/prescriptions
-// @desc    Doctor creates a new prescription
-// @access  Private (Doctor)
+// CRUD Routes for Prescriptions
+
+// Create a new prescription
 router.post('/', isAuthenticated, isDoctor, createPrescription);
 
-// @route   GET /api/v1/prescriptions/record/:recordId
-// @desc    Get all prescriptions for a medical record
-// @access  Private (Authenticated users, with checks inside controller)
+// Get all prescriptions for a specific medical record
 router.get('/record/:recordId', isAuthenticated, getPrescriptionsForRecord);
 
-// @route   GET /api/v1/prescriptions/patient/:patientId
-// @desc    Get all prescriptions for a patient
-// @access  Private (Authenticated users, with checks inside controller)
+// Get all prescriptions for a specific patient
 router.get('/patient/:patientId', isAuthenticated, getPrescriptionsForPatient);
+
+// Update a specific prescription by its ID
+router.put('/:id', isAuthenticated, isDoctor, updatePrescription);
+
+// Delete a specific prescription by its ID
+router.delete('/:id', isAuthenticated, isDoctor, deletePrescription);
 
 export default router;

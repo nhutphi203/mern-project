@@ -182,6 +182,28 @@ export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// --- THÊM HÀM MỚI ĐỂ LẤY USER THEO ID ---
+/**
+ * @desc    Get user by ID
+ * @route   GET /api/v1/users/:id
+ * @access  Private (Authenticated users)
+ */
+export const getUserById = catchAsyncErrors(async (req, res, next) => {
+    const { id } = req.params;
+
+    // Tìm người dùng trong DB bằng ID từ URL
+    const user = await User.findById(id).select("-password"); // Lấy user và loại bỏ trường password
+
+    if (!user) {
+        return next(new ErrorHandler("User not found.", 404));
+    }
+
+    // Trả về user object trong một key 'user' để khớp với frontend
+    res.status(200).json({
+        success: true,
+        user,
+    });
+});
 export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
     const doctors = await User.find({ role: "Doctor" });
     res.status(200).json({

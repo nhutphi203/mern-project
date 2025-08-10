@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePatientPrescriptions } from '@/hooks/usePrescriptions';
+import { usePatientPrescriptions } from '@/hooks/usePrescriptions'; // <--- Sửa ở đây
 import { useCurrentUser } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +44,7 @@ const MedicalRecords = () => {
                                         Issued on {new Date(prescription.createdAt).toLocaleDateString()}
                                     </CardDescription>
                                 </div>
-                                <Badge variant={prescription.status === 'New' ? 'default' : 'secondary'}>
+                                <Badge variant={prescription.status === 'Active' ? 'default' : 'secondary'}>
                                     {prescription.status}
                                 </Badge>
                             </div>

@@ -11,6 +11,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Users, Clock, Loader2, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 
+// --- Type Definitions ---
+// FIX: Định nghĩa kiểu dữ liệu cụ thể cho một lịch hẹn để tránh dùng 'any'
+interface Appointment {
+    _id: string;
+    patientId: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+    };
+    appointment_date: string;
+    status: 'Pending' | 'Accepted' | 'Rejected' | 'Completed'; // Giả định các trạng thái có thể có
+}
+
+interface AppointmentListProps {
+    appointments: Appointment[];
+    title: string;
+}
+
+
 const DoctorDashboard = () => {
     const navigate = useNavigate();
     const { data: currentUserData, isLoading: isUserLoading } = useCurrentUser();
@@ -29,10 +48,6 @@ const DoctorDashboard = () => {
     // Lọc và sắp xếp các lịch hẹn của bác sĩ
     const doctorAppointments = useMemo(() => {
         if (!appointments) return [];
-
-        // SỬA LỖI: Không cần filter lại ở đây.
-        // Hook useAppointments đã tự động fetch đúng danh sách lịch hẹn cho bác sĩ.
-        // Chúng ta chỉ cần sắp xếp lại chúng.
         return [...appointments].sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
     }, [appointments]);
 
@@ -126,7 +141,7 @@ const DoctorDashboard = () => {
     );
 };
 
-const AppointmentList = ({ appointments, title }) => {
+const AppointmentList = ({ appointments, title }: AppointmentListProps) => {
     if (appointments.length === 0) {
         return (
             <Card>
@@ -150,7 +165,8 @@ const AppointmentList = ({ appointments, title }) => {
             <CardContent>
                 <div className="space-y-4">
                     {appointments.map(apt => (
-                        <Link to={`/patient-records/${apt.patientId._id}`} key={apt._id} className="block">
+                        // FIX: Thêm `appointmentId` vào URL
+                        <Link to={`/patient-records/${apt.patientId._id}?appointmentId=${apt._id}`} key={apt._id} className="block">
                             <div className="border rounded-lg p-4 flex justify-between items-center hover:bg-gray-100 transition-colors">
                                 <div>
                                     <p className="font-semibold text-lg">{apt.patientId.firstName} {apt.patientId.lastName}</p>

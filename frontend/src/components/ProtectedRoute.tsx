@@ -1,43 +1,42 @@
-// src/auth/ProtectedRoute.tsx
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useCurrentUser } from '@/hooks/useAuth'; // Import hook của bạn
+import { Navigate } from 'react-router-dom';
+import { useCurrentUser } from '@/hooks/useAuth';
 
+// Định nghĩa kiểu dữ liệu cho props
 interface ProtectedRouteProps {
-    allowedRoles?: string[]; // Thêm tùy chọn để giới hạn vai trò nếu cần
+    children: React.ReactNode; // Cho phép nhận các component con
+    allowedRoles: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-    // --- SỬA LẠI DÒNG NÀY ---
-    // Lấy `data` từ hook và đổi tên nó thành `currentUserData` cho dễ hiểu
-    const { data: currentUserData, isLoading, isError } = useCurrentUser();
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+    const { data: currentUser, isLoading } = useCurrentUser();
 
-    // TRƯỜNG HỢP 1: Đang tải dữ liệu người dùng
     if (isLoading) {
+        // Hiển thị màn hình loading trong khi chờ lấy thông tin người dùng
         return (
-            <div className="flex justify-center items-center h-screen">
-                <div>Loading authentication...</div>
+            <div className="flex h-screen items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    // TRƯỜNG HỢP 2: Lỗi hoặc không có user sau khi đã tải xong
-    // Kiểm tra `currentUserData` và `currentUserData.user`
-    if (isError || !currentUserData?.user) {
+    const isAuthenticated = !!currentUser?.user;
+    const userRole = currentUser?.user?.role;
+
+    if (!isAuthenticated) {
+        // Nếu chưa đăng nhập, chuyển về trang login
         return <Navigate to="/login" replace />;
     }
 
-    // TRƯỜNG HỢP 3 (Nâng cao): Kiểm tra vai trò (role)
-    // Lấy role từ `currentUserData.user.role`
-    const userRole = currentUserData.user.role;
-    if (allowedRoles && !allowedRoles.includes(userRole)) {
-        // Có thể chuyển hướng về trang "Không có quyền" hoặc trang chủ
-        return <Navigate to="/" replace />;
+    if (!allowedRoles.includes(userRole)) {
+        // Nếu đã đăng nhập nhưng sai vai trò, chuyển về trang dashboard mặc định của họ
+        if (userRole === 'Admin') return <Navigate to="/admin-dashboard" replace />;
+        if (userRole === 'Doctor') return <Navigate to="/doctor-dashboard" replace />;
+        return <Navigate to="/dashboard" replace />;
     }
 
-    // TRƯỜNG HỢP 4: Tất cả đều ổn
-    // Hiển thị component con (trang được bảo vệ)
-    return <Outlet />;
+    // Nếu mọi thứ đều ổn, hiển thị component con
+    return <>{children}</>;
 };
 
 export default ProtectedRoute;

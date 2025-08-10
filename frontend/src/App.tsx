@@ -19,7 +19,8 @@ import BookAppointment from './pages/BookAppointment';
 import PatientProfilePage from './pages/PatientProfile';
 import MedicalRecords from './pages/MedicalRecords'; // Import trang mới
 import DoctorDashboard from './pages/DoctorDashboard'; // 1. Import trang mới
-
+import ProtectedRoute from './components/ProtectedRoute'; // 2. Import ProtectedRoute
+import PatientRecordDetailPage from './pages/PatientRecordDetailPage'; // Import trang chi tiết hồ sơ bệnh nhân
 const AppContent = () => {
   const { data: currentUser, isLoading, isError, error } = useCurrentUser();
   const navigate = useNavigate();
@@ -124,15 +125,39 @@ const AppContent = () => {
       <Route path="/doctors" element={<Layout><DoctorsPage /></Layout>} />
       <Route path="/contact" element={<Layout><Contact /></Layout>} />
       <Route path="/medical-records" element={<Layout><MedicalRecords /></Layout>} />
-
+      <Route
+        path="/patient-records/:patientId"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <Layout>
+              <PatientRecordDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       {/* Protected routes */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['Patient']}>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/doctor-dashboard"
         element={
-
-          <DoctorDashboard />
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DoctorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
         }
       />
       <Route path="/book-appointment" element={<BookAppointment />} />

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Đây là schema con, định nghĩa cấu trúc cho từng loại thuốc trong đơn
+// Schema con cho từng loại thuốc
 const medicationSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -19,20 +19,18 @@ const medicationSchema = new mongoose.Schema({
         required: [true, "Duration is required (e.g., '7 days')."],
     },
     notes: {
-        type: String, // Ghi chú thêm cho từng loại thuốc (ví dụ: uống sau ăn)
+        type: String,
     }
-}, { _id: false }); // _id: false để không tạo _id riêng cho mỗi loại thuốc
+}, { _id: false });
 
-// Đây là schema chính cho đơn thuốc
+// Schema chính cho đơn thuốc
 const prescriptionSchema = new mongoose.Schema({
-    // Liên kết đến hồ sơ bệnh án cụ thể
     medicalRecordId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'MedicalRecord',
         required: [true, "A prescription must be linked to a medical record."],
         index: true,
     },
-    // Sao chép ID để truy vấn nhanh và phân quyền dễ dàng
     patientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -44,24 +42,24 @@ const prescriptionSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    // Danh sách các loại thuốc được kê, sử dụng schema con ở trên
     medications: {
         type: [medicationSchema],
-        // Đảm bảo đơn thuốc phải có ít nhất 1 loại thuốc
         validate: [v => Array.isArray(v) && v.length > 0, 'A prescription must contain at least one medication.']
     },
-    // Chữ ký số của bác sĩ, sẽ được tích hợp sau
+    // Chữ ký số của bác sĩ
     digitalSignature: {
         type: String,
+        required: [true, "Digital signature is required before saving."],
     },
-    // Trạng thái của đơn thuốc
+    // Ngày ký
+    dateSigned: {
+        type: Date,
+        default: null,
+    },
     status: {
         type: String,
-        enum: ['New', 'Dispensed', 'Cancelled'], // Chỉ chấp nhận các giá trị này
-        default: 'New',
-    },
-    dispensedDate: {
-        type: Date, // Ngày cấp phát thuốc
+        enum: ['Active', 'Cancelled', 'Completed'],
+        default: 'Active',
     },
 }, {
     timestamps: true // Tự động thêm createdAt và updatedAt
