@@ -14,10 +14,10 @@ import appointmentRouter from "./router/appointmentRouter.js";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 import prescriptionRouter from './router/prescriptionRouter.js';
 import medicalRecordRouter from "./router/medicalRecordRouter.js";
-
-// Dòng này sẽ được chạy SAU KHI dotenv đã được nạp ở server.js
+import { receptionRouter } from './router/receptionRouter.js';
+import serviceCatalogRouter from './router/serviceCatalogRouter.js';
 import "./config/passport.config.js";
-
+import encounterRouter from './router/encounterRouter.js';
 const app = express();
 
 // Cài đặt các middleware cho Express
@@ -41,11 +41,16 @@ dbConnection();
 
 // Sử dụng các router
 app.use("/api/v1/medical-records", medicalRecordRouter);
+// In app.js
+// ... các router khác
 
+app.use('/api/v1/reception', receptionRouter);
+app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/appointment", appointmentRouter);
+app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/users", userRouter);
-
+app.use("/api/v1/services", serviceCatalogRouter);
 // Middleware xử lý lỗi phải nằm ở cuối cùng
 app.use(errorMiddleware);
 

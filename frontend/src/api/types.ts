@@ -65,7 +65,7 @@ export interface Appointment {
     doctorId: string | PopulatedDoctor; // Có thể là string hoặc object sau populate
     patientId: string | PopulatedPatient; // Có thể là string hoặc object sau populate
     address: string;
-    status: 'Pending' | 'Accepted' | 'Rejected';
+    status: 'Pending' | 'Accepted' | 'Rejected' | 'Completed' | 'Cancelled' | 'Checked-in'; // ✅ Đã cập nhật đầy đủ
     createdAt: string;
     updatedAt: string;
 }
@@ -182,11 +182,20 @@ export interface AppointmentFilter {
     endDate?: string;
 }
 
-// Thống kê appointments
 export interface AppointmentStats {
-    byStatus: Array<{ _id: string; count: number }>;
-    byDepartment: Array<{ _id: string; count: number }>;
-}export interface Medication {
+    totalAppointments: number;
+    // Dùng [key: string]: number để cho phép các thuộc tính động
+    // như pendingAppointments, acceptedAppointments, etc.
+    pendingAppointments?: number;
+    acceptedAppointments?: number;
+    rejectedAppointments?: number;
+    completedAppointments?: number;
+    checkedinAppointments?: number;
+    cancelledAppointments?: number;
+    // Có thể thêm các thuộc tính thống kê khác ở đây trong tương lai
+    [key: string]: number | undefined;
+}
+export interface Medication {
     name: string;
     dosage: string;
     frequency: string;
@@ -227,4 +236,32 @@ export interface Prescription {
 // Định nghĩa cấu trúc cho đơn thuốc sau khi đã populate thông tin bác sĩ
 export interface PopulatedPrescription extends Omit<Prescription, 'doctorId'> {
     doctorId: PopulatedDoctor;
+}
+export interface Encounter {
+    _id: string;
+    appointmentId: string;
+    patientId: string;
+    receptionistId: string;
+    checkInTime: string; // Dạng chuỗi ISO date
+    checkOutTime?: string;
+    status: 'InProgress' | 'Finished' | 'Cancelled';
+    serviceOrders?: string[]; // Mảng các ID của y lệnh
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Định nghĩa cấu trúc của Lượt khám đã được populate với thông tin chi tiết
+export interface PopulatedEncounter extends Omit<Encounter, 'patientId' | 'appointmentId'> {
+    // Thay vì chỉ có ID, chúng ta có toàn bộ object User (đã được rút gọn)
+    patientId: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+    };
+    // Tương tự, có object Appointment
+    appointmentId: {
+        _id: string;
+        appointment_date: string;
+    };
 }

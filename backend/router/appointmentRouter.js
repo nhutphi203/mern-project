@@ -6,7 +6,8 @@ import {
     updateAppointmentStatus,
     getMyAppointments, // Import controller mới
     getAppointmentById, // Add this
-    getAppointmentStats
+    getAppointmentStats,
+    filterAppointments
 } from '../controller/appointmentController.js';
 import {
     isAuthenticated, // Import middleware chung
@@ -25,6 +26,7 @@ router.get("/stats", isAdminAuthenticated, getAppointmentStats);
 // === ROUTE MỚI CHO BỆNH NHÂN VÀ BÁC SĨ ===
 // Route này cho phép cả Patient và Doctor truy cập
 router.get("/my-appointments", isAuthenticated, getMyAppointments);
-router.get("/:id", isAuthenticated, getAppointmentById);
+router.get("/filter", isAuthenticated, filterAppointments);
 
+router.get("/:id", isAuthenticated, getAppointmentById);
 export default router;

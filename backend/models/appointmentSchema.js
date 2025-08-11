@@ -5,12 +5,14 @@ const appointmentSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: [true, "First name is required!"],
-    minLength: [3, "First name must contain at least 3 characters!"]
+    // THE FIX IS HERE: Change 3 to 2
+    minLength: [2, "First name must contain at least 2 characters!"]
   },
   lastName: {
     type: String,
     required: [true, "Last name is required!"],
-    minLength: [3, "Last name must contain at least 3 characters!"]
+    // AND ALSO HERE: Change 3 to 2
+    minLength: [2, "Last name must contain at least 2 characters!"]
   },
   email: {
     type: String,
@@ -75,7 +77,8 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "Accepted", "Rejected"],
+    // --- Thay đổi dòng này ---
+    enum: ["Pending", "Accepted", "Rejected", "Completed", "Cancelled", "Checked-in"],
     default: "Pending",
   },
 }, { timestamps: true });

@@ -8,9 +8,9 @@ import {
     // Import các hàm controller mới cho media
     getMediaRecordsByAppointment,
     uploadMediaRecord,
-    deleteMediaRecord
+    deleteMediaRecord,
 } from '../controller/medicalRecordController.js';
-import { isAuthenticated, isDoctor } from '../middlewares/auth.js';
+import { isAuthenticated, isDoctor, requireRole } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -24,10 +24,16 @@ router.put('/:id', isAuthenticated, isDoctor, updateMedicalRecord);
 
 // --- CÁC ROUTE MỚI CHO MEDIA FILES ---
 // GET: Lấy tất cả media files của một cuộc hẹn
-router.get('/media/:appointmentId', isAuthenticated, getMediaRecordsByAppointment);
+router.post('/', isAuthenticated, requireRole(['Doctor']), createMedicalRecord);
+router.get('/appointment/:appointmentId', isAuthenticated, getMedicalRecordByAppointment);
+router.get('/patient/:patientId/history', isAuthenticated, getPatientMedicalHistory);
+router.get('/:id', isAuthenticated, getMedicalRecordById);
+router.put('/:id', isAuthenticated, requireRole(['Doctor']), updateMedicalRecord);
 
-// POST: Upload một file media mới
-router.post('/media/upload', isAuthenticated, isDoctor, uploadMediaRecord);
+// --- CÁC ROUTE CHO MEDIA FILES ---
+router.get('/media/:appointmentId', isAuthenticated, getMediaRecordsByAppointment);
+router.post('/media/upload', isAuthenticated, requireRole(['Doctor']), uploadMediaRecord);
+router.delete('/media/:id', isAuthenticated, requireRole(['Doctor']), deleteMediaRecord);
 
 // DELETE: Xóa một file media theo ID của nó
 router.delete('/media/:id', isAuthenticated, isDoctor, deleteMediaRecord);

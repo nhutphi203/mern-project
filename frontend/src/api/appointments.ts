@@ -7,6 +7,7 @@ import type {
     AppointmentFilter,
     AppointmentStats
 } from './types';
+import type { ApiResponse } from './config'; // Đảm bảo ApiResponse được import
 
 export const appointmentApi = {
     // Create new appointment (patient only)
@@ -47,9 +48,16 @@ export const appointmentApi = {
 
     // Get appointment statistics (admin only) - API mới
     getAppointmentStats: async () => {
-        return apiRequest<{ stats: AppointmentStats }>('/api/v1/appointment/stats');
+        // API trả về { success: true, stats: { ... } }
+        // nên chúng ta cần truy cập vào thuộc tính `stats`
+        const response = await apiRequest<{ stats: AppointmentStats }>('/api/v1/appointment/stats');
+        return response.stats;
     },
-
+    getAppointmentsByStatus: async (status: string) => {
+        return apiRequest<ApiResponse<{ appointments: PopulatedAppointment[] }>>(
+            `/api/v1/appointment/filter?status=${status}`
+        );
+    },
     // Update appointment status (admin only)
     updateAppointmentStatus: async (id: string, status: Appointment['status']) => {
         return apiRequest<{ appointment: Appointment }>(`/api/v1/appointment/update/${id}`, {

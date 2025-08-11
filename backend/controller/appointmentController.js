@@ -67,7 +67,63 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
         appointment,
     });
 });
+export const filterAppointments = catchAsyncErrors(async (req, res, next) => {
+    // --- BẮT ĐẦU PHẦN DEBUG ---
+    console.log("=========================================");
+    console.log("✅ filterAppointments function was called!");
+    console.log("▶️ req.query received:", req.query);
+    console.log("=========================================");
+    // --- KẾT THÚC PHẦN DEBUG ---
 
+    const { doctorId, status, startDate, endDate } = req.query;
+    const query = {};
+
+    if (status) {
+        const validStatuses = Appointment.schema.path('status').enumValues;
+        if (!validStatuses.includes(status)) {
+            return next(new ErrorHandler(`Invalid status value. Must be one of: ${validStatuses.join(', ')}`, 400));
+        }
+        query.status = status;
+    }
+
+    if (doctorId) {
+        if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+            return next(new ErrorHandler('Invalid Doctor ID format.', 400));
+        }
+        query.doctorId = doctorId; // Đảm bảo query cũng dùng đúng tên trường
+    }
+
+
+    if (startDate || endDate) {
+        query.appointment_date = {};
+        if (startDate) {
+            query.appointment_date.$gte = new Date(startDate);
+        }
+        if (endDate) {
+            const endOfDay = new Date(endDate);
+            endOfDay.setDate(endOfDay.getDate() + 1);
+            query.appointment_date.$lt = endOfDay;
+        }
+    }
+
+    if (Object.keys(query).length === 0) {
+        return next(new ErrorHandler('Please provide at least one filter criterion.', 400));
+    }
+
+    console.log("🔍 Executing find with query:", query); // Log thêm query sẽ thực thi
+
+    const appointments = await Appointment.find(query)
+        .populate({ path: 'patientId', select: 'firstName lastName email' })
+        .populate({ path: 'doctorId', select: 'firstName lastName' }); // ✅ Sửa 'doctor' thành 'doctorId'
+
+    console.log(`✨ Found ${appointments.length} appointments.`);
+
+    res.status(200).json({
+        success: true,
+        count: appointments.length,
+        appointments,
+    });
+});
 // Controller để Admin xem tất cả lịch hẹn
 export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
     const appointments = await Appointment.find()
@@ -137,27 +193,37 @@ export const updateAppointmentStatus = catchAsyncErrors(async (req, res, next) =
     });
 });
 export const getAppointmentStats = catchAsyncErrors(async (req, res, next) => {
-    // Sử dụng Promise.all để chạy các câu lệnh đếm song song, tăng hiệu năng
-    const [
-        totalAppointments,
-        pendingAppointments,
-        acceptedAppointments,
-        rejectedAppointments,
-    ] = await Promise.all([
-        Appointment.countDocuments(),
-        Appointment.countDocuments({ status: "Pending" }),
-        Appointment.countDocuments({ status: "Accepted" }),
-        Appointment.countDocuments({ status: "Rejected" }),
+    // 1. Tự động lấy tất cả các trạng thái hợp lệ từ Appointment Model
+    const validStatuses = Appointment.schema.path('status').enumValues;
+
+    // 2. Tạo một mảng các "lời hứa" (promises) để đếm song song
+    const countPromises = validStatuses.map(status =>
+        Appointment.countDocuments({ status: status })
+    );
+
+    // Thêm một promise để đếm tổng số
+    const totalPromise = Appointment.countDocuments();
+
+    // 3. Chạy tất cả các promise cùng một lúc để tăng hiệu năng
+    const [totalAppointments, ...statusCounts] = await Promise.all([
+        totalPromise,
+        ...countPromises
     ]);
+
+    // 4. Xây dựng đối tượng stats một cách tự động
+    const stats = {
+        totalAppointments,
+    };
+
+    validStatuses.forEach((status, index) => {
+        // Tạo key động, ví dụ: 'pendingAppointments', 'acceptedAppointments'
+        const key = `${status.toLowerCase().replace('-', '')}Appointments`;
+        stats[key] = statusCounts[index];
+    });
 
     res.status(200).json({
         success: true,
-        stats: {
-            totalAppointments,
-            pendingAppointments,
-            acceptedAppointments,
-            rejectedAppointments,
-        },
+        stats,
     });
 });
 // Controller để Admin xóa lịch hẹn

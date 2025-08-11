@@ -20,6 +20,8 @@ import PatientProfilePage from './pages/PatientProfile';
 import MedicalRecords from './pages/MedicalRecords'; // Import trang mới
 import DoctorDashboard from './pages/DoctorDashboard'; // 1. Import trang mới
 import ProtectedRoute from './components/ProtectedRoute'; // 2. Import ProtectedRoute
+import ReceptionDashboard from './pages/ReceptionDashboard';
+
 import PatientRecordDetailPage from './pages/PatientRecordDetailPage'; // Import trang chi tiết hồ sơ bệnh nhân
 const AppContent = () => {
   const { data: currentUser, isLoading, isError, error } = useCurrentUser();
@@ -157,6 +159,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute allowedRoles={['Admin']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reception-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['Receptionist', 'Admin']}>
+            <ReceptionDashboard />
           </ProtectedRoute>
         }
       />

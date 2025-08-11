@@ -50,12 +50,15 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        required: [true, "User role is required!"],
-        enum: ["Patient", "Doctor", "Admin"],
-    },
-
+        enum: [
+            'Patient', 'Doctor', 'Admin', // Existing roles
+            'Receptionist', 'Technician', 'BillingStaff' // New roles
+        ],
+        required: true,
+        default: 'Patient'
+    }
     // --- ENHANCED FIELDS FOR VERIFICATION & SOCIAL LOGIN ---
-
+    ,
     // Traditional authentication fields
     isVerified: {
         type: Boolean,

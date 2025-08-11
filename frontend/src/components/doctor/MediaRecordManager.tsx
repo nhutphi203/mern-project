@@ -42,7 +42,7 @@ const MediaRecordManager: React.FC<MediaRecordManagerProps> = ({ appointmentId, 
         try {
             setIsLoading(true);
             const response = await mediaRecordApi.getForAppointment(appointmentId);
-            setMediaRecords(response.mediaRecords || []);
+            setMediaRecords(response.mediaRecords);
         } catch (error) {
             console.error('Error fetching media records:', error);
             toast.error('Failed to load media records');

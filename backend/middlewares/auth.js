@@ -69,6 +69,18 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
         next();
     })(req, res, next);
 });
+export const requireRole = (allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            // logger.warn(`Forbidden access attempt by user ${req.user?._id} for role-protected route`);
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden: You do not have the required permissions.",
+            });
+        }
+        next();
+    };
+};
 export const isDoctor = (req, res, next) => {
     if (req.user.role !== 'Doctor') {
         return next(new ErrorHandler(`Forbidden. Your role (${req.user.role}) is not authorized for this resource.`, 403));

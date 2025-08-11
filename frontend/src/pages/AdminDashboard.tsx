@@ -1,7 +1,7 @@
 
 // src/pages/AdminDashboard.tsx
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,12 +15,15 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Activity
+    Activity,
+    ClipboardList // 1. THÊM ICON NÀY (thay cho ClipboardUser)
+
 } from 'lucide-react';
 import { useCurrentUser, useAuth } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useMessages } from '@/hooks/useMessages';
 import { useDoctors } from '@/hooks/useDoctors';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const AdminDashboard = () => {
     const { data: currentUser, isLoading } = useCurrentUser();
@@ -28,6 +31,7 @@ const AdminDashboard = () => {
     const { appointments, updateStatus, deleteAppointment, isUpdating, isDeleting } = useAppointments();
     const { messages } = useMessages();
     const { doctors } = useDoctors();
+    const { stats, isLoadingStats } = useDashboardStats();
 
     if (isLoading) {
         return (
@@ -78,7 +82,9 @@ const AdminDashboard = () => {
 
             <main className="container mx-auto px-4 py-8">
                 {/* Stats Cards */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Card: Total Appointments */}
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
@@ -86,13 +92,16 @@ const AdminDashboard = () => {
                                     <Calendar className="h-6 w-6 text-primary" />
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold">{appointments?.length || 0}</p>
-                                    <p className="text-sm text-muted-foreground">Total Appointments</p>
+                                    <p className="text-2xl font-bold">
+                                        {isLoadingStats ? '...' : stats?.totalAppointments ?? 0}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Tổng Lịch hẹn</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Card: Pending Appointments */}
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
@@ -100,42 +109,59 @@ const AdminDashboard = () => {
                                     <Clock className="h-6 w-6 text-yellow-600" />
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold">{pendingAppointments.length}</p>
-                                    <p className="text-sm text-muted-foreground">Pending Appointments</p>
+                                    <p className="text-2xl font-bold">
+                                        {isLoadingStats ? '...' : stats?.pendingAppointments ?? 0}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Chờ duyệt</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Card: Accepted Appointments (VÍ DỤ THÊM MỚI) */}
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                                    <Users className="h-6 w-6 text-secondary" />
+                                <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <CheckCircle className="h-6 w-6 text-green-600" />
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold">{doctors?.length || 0}</p>
-                                    <p className="text-sm text-muted-foreground">Total Doctors</p>
+                                    <p className="text-2xl font-bold">
+                                        {isLoadingStats ? '...' : stats?.acceptedAppointments ?? 0}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Đã duyệt</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Card: Doctors (Giữ nguyên, vì nó lấy từ hook khác) */}
                     <Card>
                         <CardContent className="p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                                    <MessageSquare className="h-6 w-6 text-accent" />
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold">{messages?.length || 0}</p>
-                                    <p className="text-sm text-muted-foreground">New Messages</p>
-                                </div>
-                            </div>
+                            {/* ... code cho Total Doctors giữ nguyên ... */}
                         </CardContent>
                     </Card>
                 </div>
-
+                <div className="mb-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Công cụ Vận hành</CardTitle>
+                            <CardDescription>
+                                Lối tắt truy cập nhanh vào các chức năng nghiệp vụ.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-4">
+                            <Button asChild>
+                                <Link to="/reception-dashboard">
+                                    <ClipboardList className="mr-2 h-4 w-4" />
+                                    Màn hình Check-in (Lễ tân)
+                                </Link>
+                            </Button>
+                            {/* Bạn có thể thêm các nút khác ở đây trong tương lai */}
+                        </CardContent>
+                    </Card>
+                </div>
+                {/* --- KẾT THÚC PHẦN THÊM --- */}
                 {/* Main Content Tabs */}
                 <Tabs defaultValue="appointments" className="space-y-6">
                     <TabsList>

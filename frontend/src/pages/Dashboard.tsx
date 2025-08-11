@@ -1,20 +1,24 @@
 // src/pages/Dashboard.tsx - Redesigned by Gemini UI Expert
 
-import React, { useEffect, useMemo } from 'react';
-import { Navigate, useNavigate, Link } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCurrentUser, useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import {
-    Calendar, Clock, LogOut, Phone, HeartPulse, ArrowRight, PlusCircle, AlertTriangle, ClipboardList
-} from 'lucide-react';
-
+import { Calendar, Clock, ArrowRight, PlusCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { LogOut, Phone, HeartPulse } from 'lucide-react';
 // --- CÁC HELPER COMPONENTS ĐỂ GIÚP GIAO DIỆN SẠCH SẼ HƠN ---
-
+import { useMemo, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { AlertTriangle } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { ClipboardList } from 'lucide-react';
 // 1. Avatar Component: Tự động tạo avatar từ tên nếu không có ảnh
 const Avatar = ({ name }: { name: string }) => {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -23,6 +27,28 @@ const Avatar = ({ name }: { name: string }) => {
             {initials}
         </div>
     );
+};
+const AppointmentStatusBadge = ({ status }: { status: string }) => {
+    const getStatusInfo = () => {
+        switch (status) {
+            case "Pending":
+                return { text: "Đang chờ duyệt", variant: "outline" as const };
+            case "Accepted":
+                return { text: "Đã xác nhận", variant: "default" as const, className: "bg-blue-500" };
+            case "Checked-in":
+                return { text: "Đã check-in", variant: "secondary" as const, className: "bg-yellow-500 text-black" };
+            case "Completed":
+                return { text: "Đã hoàn tất", variant: "default" as const, className: "bg-green-500" };
+            case "Rejected":
+            case "Cancelled":
+                return { text: "Đã hủy/Từ chối", variant: "destructive" as const };
+            default:
+                return { text: status, variant: "outline" as const };
+        }
+    };
+
+    const { text, variant, className } = getStatusInfo();
+    return <Badge variant={variant} className={className}>{text}</Badge>;
 };
 
 // 2. Empty State Component: Hiển thị khi không có lịch hẹn
