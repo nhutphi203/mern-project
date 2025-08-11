@@ -1,4 +1,4 @@
-// File: src/api/encounterApi.ts (Phiên bản tối ưu)
+// File: src/api/encounterApi.ts (Production Version)
 
 import { apiRequest } from './config';
 import type { ApiResponse } from './config';
@@ -12,11 +12,18 @@ export const encounterApi = {
      * @returns {Promise<PopulatedEncounter[]>} Một promise chứa mảng các lượt khám.
      */
     getDoctorQueue: async (): Promise<PopulatedEncounter[]> => {
-        const response = await apiRequest<ApiResponse<{ encounters: PopulatedEncounter[] }>>(
-            DOCTOR_QUEUE_ENDPOINT,
-            { method: 'GET' }
-        );
-        // Trực tiếp trả về mảng 'encounters' hoặc một mảng rỗng
-        return response.data?.encounters || [];
+        try {
+            const response = await apiRequest<ApiResponse<{ encounters: PopulatedEncounter[] }>>(
+                DOCTOR_QUEUE_ENDPOINT,
+                { method: 'GET' }
+            );
+
+            // Trả về mảng encounters từ response.data.encounters
+            return response.data?.encounters || [];
+
+        } catch (error) {
+            console.error('[Encounter API Error]:', error instanceof Error ? error.message : 'Unknown error');
+            throw error;
+        }
     }
 };

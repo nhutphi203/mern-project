@@ -1,4 +1,4 @@
-// src/pages/DoctorDashboard.tsx (Corrected Version)
+// src/pages/DoctorDashboard.tsx (Production Version)
 
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,34 +15,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Calendar, Users, Clock, Loader2, LogOut, Stethoscope, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
-// STEP 1: IMPORT THE CORRECT TYPE FROM THE GLOBAL FILE
 import type { PopulatedAppointment } from '@/api/types';
 
-// STEP 2: UPDATE THE PROPS INTERFACE TO USE THE IMPORTED TYPE
 interface AppointmentListProps {
     appointments: PopulatedAppointment[];
     title: string;
 }
 
-// STEP 3: CREATE A SINGLE, REUSABLE STATUS BADGE COMPONENT
 const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
         case 'Accepted':
-            return 'default'; // Blue
+            return 'default';
         case 'Checked-in':
-            return 'secondary'; // Gray
+            return 'secondary';
         case 'Rejected':
         case 'Cancelled':
-            return 'destructive'; // Red
-        default: // Pending, Completed, etc.
-            return 'outline'; // Bordered
+            return 'destructive';
+        default:
+            return 'outline';
     }
 };
 
 const DoctorDashboard = () => {
     const navigate = useNavigate();
     const { data: currentUserData, isLoading: isUserLoading } = useCurrentUser();
-    // FIX: Removed the local fetchAppointments and useEffect, as useAppointments handles its own fetching
     const { appointments, isLoading: appointmentsLoading } = useAppointments();
     const { logoutMutation, isLogouting } = useAuth();
     const { waitingList, isLoadingQueue, queueError } = useDoctorQueue();
@@ -52,15 +48,15 @@ const DoctorDashboard = () => {
     // Lọc và sắp xếp các lịch hẹn
     const doctorAppointments = useMemo(() => {
         if (!appointments) return [];
-        // The hook already filters by doctor, so we just sort here.
         return [...appointments].sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime());
     }, [appointments]);
 
     const todayAppointments = useMemo(() => {
         const today = format(new Date(), 'yyyy-MM-dd');
-        return doctorAppointments.filter(apt =>
-            format(new Date(apt.appointment_date), 'yyyy-MM-dd') === today
-        );
+        return doctorAppointments.filter(apt => {
+            const aptDate = format(new Date(apt.appointment_date), 'yyyy-MM-dd');
+            return aptDate === today;
+        });
     }, [doctorAppointments]);
 
     if (isUserLoading || appointmentsLoading) {
@@ -90,8 +86,10 @@ const DoctorDashboard = () => {
                 {/* Waiting Queue Section */}
                 <Card className="mb-8">
                     <CardHeader>
-                        <CardTitle>Patient Waiting Queue</CardTitle>
-                        <CardDescription>Patients who have checked-in and are ready for examination.</CardDescription>
+                        <CardTitle>Patient Waiting Queue ({waitingList.length})</CardTitle>
+                        <CardDescription>
+                            Patients who have checked-in and are ready for examination.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -100,27 +98,33 @@ const DoctorDashboard = () => {
                                     <TableHead>#</TableHead>
                                     <TableHead>Patient Name</TableHead>
                                     <TableHead>Check-in Time</TableHead>
+                                    <TableHead>Appointment Date</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoadingQueue ? (
-                                    <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></TableCell></TableRow>
                                 ) : queueError ? (
-                                    <TableRow><TableCell colSpan={4} className="h-24 text-center text-destructive"><AlertCircle className="mx-auto h-8 w-8" /><p>Error: {queueError.message}</p></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="h-24 text-center text-destructive"><AlertCircle className="mx-auto h-8 w-8" /><p>Error loading queue: {queueError.message}</p></TableCell></TableRow>
                                 ) : waitingList.length > 0 ? (
                                     waitingList.map((encounter, index) => (
                                         <TableRow key={encounter._id}>
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{`${encounter.patientId.firstName} ${encounter.patientId.lastName}`}</TableCell>
                                             <TableCell>{format(new Date(encounter.checkInTime), 'p')}</TableCell>
+                                            <TableCell>{encounter.appointmentId?.appointment_date || 'N/A'}</TableCell>
                                             <TableCell className="text-right">
                                                 <Button asChild size="sm"><Link to={`/examination/${encounter._id}`}><Stethoscope className="mr-2 h-4 w-4" />Examine</Link></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
-                                    <TableRow><TableCell colSpan={4} className="h-24 text-center">No patients in the queue.</TableCell></TableRow>
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            No patients in the queue.
+                                        </TableCell>
+                                    </TableRow>
                                 )}
                             </TableBody>
                         </Table>
@@ -130,8 +134,8 @@ const DoctorDashboard = () => {
                 {/* Appointment Schedule Section */}
                 <Tabs defaultValue="today">
                     <TabsList>
-                        <TabsTrigger value="today">Today's Schedule</TabsTrigger>
-                        <TabsTrigger value="all">All Appointments</TabsTrigger>
+                        <TabsTrigger value="today">Today's Schedule ({todayAppointments.length})</TabsTrigger>
+                        <TabsTrigger value="all">All Appointments ({doctorAppointments.length})</TabsTrigger>
                     </TabsList>
                     <TabsContent value="today">
                         <AppointmentList appointments={todayAppointments} title="Today's Appointments" />
@@ -145,7 +149,6 @@ const DoctorDashboard = () => {
         </div>
     );
 };
-
 
 const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, title }) => {
     if (appointments.length === 0) {
@@ -177,7 +180,6 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, title }
                                         <Clock className="h-4 w-4" />{format(new Date(apt.appointment_date), 'p')}
                                     </p>
                                 </div>
-                                {/* FIX: APPLY THE GETSTATUSCOLOR FUNCTION HERE */}
                                 <Badge variant={getStatusColor(apt.status)}>{apt.status}</Badge>
                             </div>
                         </Link>
