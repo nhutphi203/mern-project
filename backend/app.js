@@ -5,7 +5,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import fileUpload from "express-fileupload";
 import passport from "passport";
-
+import labRouter from './router/labRouter.js';
+import billingRouter from './router/billingRouter.js';
 // Import các router và middleware
 import { dbConnection } from "./database/dbConnection.js";
 import messageRouter from "./router/messageRouter.js";
@@ -44,6 +45,10 @@ app.use("/api/v1/medical-records", medicalRecordRouter);
 // In app.js
 // ... các router khác
 
+
+// Thêm sau dòng 59
+app.use("/api/v1/lab", labRouter);
+app.use("/api/v1/billing", billingRouter);
 app.use('/api/v1/reception', receptionRouter);
 app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/message", messageRouter);

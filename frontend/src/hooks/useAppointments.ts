@@ -5,12 +5,16 @@ import type {
     Appointment,
     AppointmentRequest,
     AppointmentFilter,
-    PopulatedAppointment
+    PopulatedAppointment,
+    // << Đảm bảo bạn đã import ApiResponse
 } from '@/api/types';
 import { useToast } from '@/hooks/use-toast';
-import { ApiError } from '@/api/config';
+import { ApiError, ApiResponse } from '@/api/config';
 import { useCurrentUser } from './useAuth';
 
+type PossibleAppointmentResponses =
+    | ApiResponse<{ appointments: PopulatedAppointment[] }>
+    | { appointments: PopulatedAppointment[] };
 export const useAppointments = (filter?: AppointmentFilter) => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
@@ -18,24 +22,53 @@ export const useAppointments = (filter?: AppointmentFilter) => {
 
     const userRole = currentUser?.user?.role;
 
-    const appointmentsQuery = useQuery({
-        queryKey: ['appointments', userRole, filter],
-        queryFn: () => {
+    // ✅ BƯỚC 1: Thêm kiểu dữ liệu tường minh để TypeScript kiểm tra giúp bạn
+    const appointmentsQuery = useQuery<ApiResponse<{ appointments: PopulatedAppointment[] }>, ApiError>({
+        queryKey: ['appointments', filter],
+        // ✅ SỬA Ở ĐÂY: Dùng async/await để xử lý và chuẩn hóa dữ liệu
+        queryFn: async () => {
+            let result: PossibleAppointmentResponses;
+
+            // Lấy dữ liệu thô từ API
             if (filter && Object.keys(filter).length > 0) {
-                return appointmentApi.filterAppointments(filter);
+                result = await appointmentApi.filterAppointments(filter);
+            } else {
+                switch (userRole) {
+                    case 'Admin':
+                        result = await appointmentApi.getAllAppointments();
+                        break;
+                    case 'Patient':
+                    case 'Doctor':
+                        result = await appointmentApi.getMyAppointments();
+                        break;
+                    default:
+                        // Trường hợp mặc định trả về cấu trúc chuẩn
+                        return {
+                            success: true,
+                            message: "No user role or filter provided.",
+                            data: { appointments: [] }
+                        };
+                }
             }
 
-            switch (userRole) {
-                case 'Admin':
-                    return appointmentApi.getAllAppointments();
-                case 'Patient':
-                case 'Doctor':
-                    return appointmentApi.getMyAppointments();
-                default:
-                    return Promise.resolve({ appointments: [] });
+            // ✅ BƯỚC 3: Dùng type guard để "chuẩn hóa" dữ liệu một cách an toàn
+            // 'in' operator là một type guard an toàn trong TypeScript
+            if (result && 'success' in result && 'data' in result) {
+                // Nếu 'result' đã là một ApiResponse đầy đủ, trả về luôn
+                return result as ApiResponse<{ appointments: PopulatedAppointment[] }>;
+            } else if (result && 'appointments' in result) {
+                // Nếu 'result' chỉ là object { appointments: [...] }, hãy bọc nó lại
+                return {
+                    success: true,
+                    message: "Data normalized in hook.",
+                    data: { appointments: result.appointments }
+                };
             }
+
+            // Trường hợp dự phòng nếu API trả về lỗi không mong muốn
+            throw new Error("Unexpected API response format.");
         },
-        enabled: !!userRole,
+        enabled: !!userRole || !!filter,
     });
 
     // === THÊM LẠI LOGIC LẤY THỐNG KÊ ===
@@ -99,18 +132,16 @@ export const useAppointments = (filter?: AppointmentFilter) => {
             });
         },
     });
-
     return {
-        appointments: appointmentsQuery.data?.appointments as PopulatedAppointment[] | undefined,
+        // Trả về dữ liệu từ appointmentsQuery
+        appointments: appointmentsQuery.data?.data?.appointments,
         isLoading: appointmentsQuery.isLoading,
         error: appointmentsQuery.error,
         fetchAppointments: appointmentsQuery.refetch,
 
-        // === THÊM LẠI CÁC GIÁ TRỊ THỐNG KÊ VÀO RETURN ===
         stats: statsQuery.data?.stats,
         isLoadingStats: statsQuery.isLoading,
         statsError: statsQuery.error,
-        // === KẾT THÚC PHẦN THÊM MỚI ===
 
         createAppointment: createAppointmentMutation.mutate,
         updateStatus: updateStatusMutation.mutate,

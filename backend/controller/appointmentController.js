@@ -200,7 +200,14 @@ export const getAppointmentStats = catchAsyncErrors(async (req, res, next) => {
     const countPromises = validStatuses.map(status =>
         Appointment.countDocuments({ status: status })
     );
-
+    const byStatus = await Appointment.aggregate([
+        {
+            $group: {
+                _id: '$status', // Nhóm các tài liệu theo trường 'status'
+                count: { $sum: 1 } // Đếm số lượng tài liệu trong mỗi nhóm
+            }
+        }
+    ]);
     // Thêm một promise để đếm tổng số
     const totalPromise = Appointment.countDocuments();
 
@@ -223,6 +230,9 @@ export const getAppointmentStats = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
+        stats: {
+            byStatus: byStatus,
+        },
         stats,
     });
 });

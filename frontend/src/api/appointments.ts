@@ -19,8 +19,12 @@ export const appointmentApi = {
     },
 
     // Get all appointments (admin only) - trả về populated data
-    getAllAppointments: async () => {
-        return apiRequest<{ appointments: PopulatedAppointment[] }>('/api/v1/appointment/getall');
+    getAllAppointments: (): Promise<ApiResponse<{ appointments: PopulatedAppointment[] }>> => {
+        // Chỉ cần gọi apiRequest và return trực tiếp kết quả
+        return apiRequest<ApiResponse<{ appointments: PopulatedAppointment[] }>>(
+            '/api/v1/appointment/getall', // Hoặc endpoint đúng của bạn
+            { method: 'GET' }
+        );
     },
 
     // Get patient's own appointments (patient only)

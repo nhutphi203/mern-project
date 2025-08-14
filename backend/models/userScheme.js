@@ -52,7 +52,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: [
             'Patient', 'Doctor', 'Admin', // Existing roles
-            'Receptionist', 'Technician', 'BillingStaff' // New roles
+            'Receptionist', 'Technician', 'BillingStaff',
+            'LabSupervisor', 'Pharmacist' // Thêm 2 roles mới
+            // New roles
         ],
         required: true,
         default: 'Patient'
