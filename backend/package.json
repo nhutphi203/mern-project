@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=./config/config.env server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "seed": "node backend/seeders/index.js",
+    "seed:lab": "node -e \"import('./backend/seeders/labTestSeeder.js').then(m => m.seedLabTests())\"",
+    "seed:insurance": "node -e \"import('./backend/seeders/insuranceSeeder.js').then(m => m.seedInsuranceProviders())\""
   },
   "author": "",
   "license": "ISC",

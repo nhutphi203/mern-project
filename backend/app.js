@@ -18,6 +18,8 @@ import { receptionRouter } from './router/receptionRouter.js';
 import serviceCatalogRouter from './router/serviceCatalogRouter.js';
 import "./config/passport.config.js";
 import encounterRouter from './router/encounterRouter.js';
+import labRouter from './router/labRouter.js';
+import billingRouter from './router/billingRouter.js';
 const app = express();
 
 // Cài đặt các middleware cho Express
@@ -47,6 +49,8 @@ app.use("/api/v1/medical-records", medicalRecordRouter);
 app.use('/api/v1/reception', receptionRouter);
 app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/message", messageRouter);
+app.use("/api/v1/lab", labRouter);
+app.use("/api/v1/billing", billingRouter);
 app.use("/api/v1/appointment", appointmentRouter);
 app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/users", userRouter);
