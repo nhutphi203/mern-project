@@ -178,6 +178,31 @@ export const labService = {
         return response.json();
     },
 
+    // Download lab report as PDF
+    async downloadLabReportPdf(orderId: string, filename = `lab-report-${orderId}.pdf`): Promise<void> {
+        const response = await fetch(`${API_BASE}/reports/${orderId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/pdf',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to download lab report');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    },
+
     // Get lab statistics
     async getLabStats(params?: {
         startDate?: string;

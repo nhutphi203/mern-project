@@ -1,6 +1,6 @@
 // frontend/src/hooks/useBilling.ts
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { billingService } from '@/api/billing.service';
 import { Invoice } from '@/api/billing.types';
 import { toast } from 'sonner';
@@ -93,11 +93,21 @@ export const useInvoices = (filters?: {
         error: null,
     });
 
+    // Memoize filters to prevent unnecessary re-renders
+    const memoizedFilters = useMemo(() => filters, [
+        filters?.status,
+        filters?.patientId,
+        filters?.startDate,
+        filters?.endDate,
+        filters?.page,
+        filters?.limit
+    ]);
+
     const fetchInvoices = useCallback(async () => {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const response = await billingService.getAllInvoices(filters);
+            const response = await billingService.getAllInvoices(memoizedFilters);
             setState({
                 data: {
                     invoices: response.invoices,
@@ -116,7 +126,7 @@ export const useInvoices = (filters?: {
                 error: error instanceof Error ? error.message : 'Failed to fetch invoices',
             });
         }
-    }, [filters]);
+    }, [memoizedFilters]);
 
     useEffect(() => {
         fetchInvoices();
@@ -177,7 +187,7 @@ export const useInvoiceDetail = (invoiceId: string) => {
 
 // Hook for processing payments
 export const useProcessPayment = () => {
-    const [state, setState] = useState<ApiState<any>>({
+    const [state, setState] = useState<ApiState<unknown>>({
         data: null,
         loading: false,
         error: null,
@@ -226,7 +236,7 @@ export const useProcessPayment = () => {
 
 // Hook for insurance claim management
 export const useInsuranceClaim = () => {
-    const [submitState, setSubmitState] = useState<ApiState<any>>({
+    const [submitState, setSubmitState] = useState<ApiState<unknown>>({
         data: null,
         loading: false,
         error: null,
@@ -310,7 +320,7 @@ export const useInsuranceClaim = () => {
 
 // Hook for billing reports
 export const useBillingReports = () => {
-    const [state, setState] = useState<ApiState<any>>({
+    const [state, setState] = useState<ApiState<unknown>>({
         data: null,
         loading: false,
         error: null,

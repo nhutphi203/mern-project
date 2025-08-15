@@ -205,11 +205,81 @@ export const getUserById = catchAsyncErrors(async (req, res, next) => {
     });
 });
 export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
-    const doctors = await User.find({ role: "Doctor" });
+    const doctors = await User.find({ role: "Doctor" }).select("-password");
     res.status(200).json({
         success: true,
         doctors,
     });
+});
+
+// --- THÊM HÀM MỚI ĐỂ LẤY DANH SÁCH PATIENTS ---
+/**
+ * @desc    Get all patients (for Admin, Doctor, Receptionist)
+ * @route   GET /api/v1/users/patients
+ * @access  Private (Admin, Doctor, Receptionist)
+ */
+export const getAllPatients = catchAsyncErrors(async (req, res, next) => {
+    console.log('🔍 [getAllPatients] Request received:', {
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        query: req.query,
+        user: req.user ? { id: req.user._id, role: req.user.role } : 'No user'
+    });
+
+    const { search, gender, role, page = 1, limit = 10 } = req.query;
+
+    // Build filter object
+    const filter = { role: "Patient" };
+
+    if (search) {
+        filter.$or = [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    if (gender) {
+        filter.gender = gender;
+    }
+
+    console.log('🔍 [getAllPatients] Filter applied:', filter);
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    try {
+        // Execute query with pagination
+        const patients = await User.find(filter)
+            .select("-password")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Get total count for pagination
+        const totalCount = await User.countDocuments(filter);
+
+        console.log('✅ [getAllPatients] Success:', {
+            patientsFound: patients.length,
+            totalCount,
+            filter
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                patients,
+                count: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalCount / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        console.error('❌ [getAllPatients] Database error:', error);
+        return next(new ErrorHandler('Database error occurred', 500));
+    }
 });
 
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {

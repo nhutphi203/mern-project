@@ -114,6 +114,20 @@ const Dashboard = () => {
     }
     // --- KẾT THÚC PHẦN LOGIC ---
 
+    // Kiểm tra role để hiển thị đúng dashboard
+    if (user.role === 'Admin') {
+        return <Navigate to="/admin-dashboard" replace />;
+    }
+
+    if (user.role === 'Doctor') {
+        return <Navigate to="/doctor-dashboard" replace />;
+    }
+
+    // Chỉ hiển thị Patient Dashboard nếu user là Patient
+    if (user.role !== 'Patient') {
+        return <Navigate to="/login" replace />;
+    }
+
     return (
         <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 font-sans">
             <style>

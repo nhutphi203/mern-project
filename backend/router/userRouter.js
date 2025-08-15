@@ -8,6 +8,7 @@ import {
     register,
     addNewAdmin,
     getAllDoctors,
+    getAllPatients, // Thêm import mới
     getUserDetails,
     logout,
     addNewDoctor,
@@ -52,8 +53,8 @@ router.post('/auth/token-exchange', (req, res) => { /* ... code của bạn ... 
 
 // --- CÁC ROUTE GET (CỤ THỂ) ---
 router.get("/doctors", getAllDoctors);
+router.get("/patients", isAuthenticated, getAllPatients); // Thêm route mới cho patients
 router.get("/logout", isAuthenticated, logout);
-router.get("")
 // FIX: Sửa lại route để khớp với frontend.
 // Frontend đang gọi '/api/v1/users/me' để lấy thông tin người dùng hiện tại.
 router.get("/me", isAuthenticated, getUserDetails);

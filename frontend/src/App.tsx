@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 // Layout and Pages
 import Layout from './components/layout/Layout';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import AboutPage from './pages/About';
 import ServicesPage from './pages/Services';
 import DoctorsPage from './pages/Doctors';
@@ -21,6 +22,19 @@ import MedicalRecords from './pages/MedicalRecords'; // Import trang mới
 import DoctorDashboard from './pages/DoctorDashboard'; // 1. Import trang mới
 import ProtectedRoute from './components/ProtectedRoute'; // 2. Import ProtectedRoute
 import ReceptionDashboard from './pages/ReceptionDashboard';
+// Lab pages
+import LabOrdersPage from '@/pages/Lab/LabOrdersPage';
+import LabResultsView from '@/pages/Lab/LabResultsView';
+import LabResultEntry from '@/pages/Lab/LabResultEntry';
+import LabQueue from '@/components/Lab/LabQueue';
+// Billing pages
+import InvoicesPage from '@/pages/Billing/InvoicesPage';
+import PaymentsPage from '@/pages/Billing/PaymentsPage';
+import InsuranceClaimsPage from '@/pages/Billing/InsuranceClaimsPage';
+import BillingReportsPage from '@/pages/Billing/BillingReportsPage';
+import MyInvoicesPage from '@/pages/Billing/MyInvoicesPage';
+import PatientsPage from '@/pages/PatientsPage';
+import AppointmentsPage from '@/pages/AppointmentsPage';
 
 import PatientRecordDetailPage from './pages/PatientRecordDetailPage'; // Import trang chi tiết hồ sơ bệnh nhân
 const AppContent = () => {
@@ -141,8 +155,10 @@ const AppContent = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['Patient']}>
-            <Dashboard />
+          <ProtectedRoute allowedRoles={['Patient', 'Doctor', 'Admin', 'Receptionist', 'Lab Technician', 'Insurance Staff']}>
+            <DashboardLayout>
+              <Dashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -150,7 +166,9 @@ const AppContent = () => {
         path="/doctor-dashboard"
         element={
           <ProtectedRoute allowedRoles={['Doctor']}>
-            <DoctorDashboard />
+            <DashboardLayout>
+              <DoctorDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -158,7 +176,9 @@ const AppContent = () => {
         path="/admin-dashboard"
         element={
           <ProtectedRoute allowedRoles={['Admin']}>
-            <AdminDashboard />
+            <DashboardLayout>
+              <AdminDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -166,12 +186,152 @@ const AppContent = () => {
         path="/reception-dashboard"
         element={
           <ProtectedRoute allowedRoles={['Receptionist', 'Admin']}>
-            <ReceptionDashboard />
+            <DashboardLayout>
+              <ReceptionDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
       <Route path="/book-appointment" element={<BookAppointment />} />
       <Route path="/patient-profile/:patientId" element={<PatientProfilePage />} />
+
+      {/* Patient Management routes */}
+      <Route
+        path="/patients"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+            <DashboardLayout>
+              <PatientsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Appointment Management routes */}
+      <Route
+        path="/appointments"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Patient', 'Receptionist']}>
+            <DashboardLayout>
+              <AppointmentsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Laboratory routes */}
+      <Route
+        path="/lab/orders"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Admin', 'Receptionist']}>
+            <DashboardLayout>
+              <LabOrdersPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab/queue"
+        element={
+          <ProtectedRoute allowedRoles={['Lab Technician', 'Admin']}>
+            <DashboardLayout>
+              <LabQueue />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab/results"
+        element={
+          <ProtectedRoute allowedRoles={['Lab Technician', 'Doctor', 'Patient', 'Admin']}>
+            <DashboardLayout>
+              <LabResultsView showPatientInfo />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab/results/my"
+        element={
+          <ProtectedRoute allowedRoles={['Patient']}>
+            <DashboardLayout>
+              <LabResultsView showPatientInfo={false} />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab/results/enter"
+        element={
+          <ProtectedRoute allowedRoles={['Lab Technician']}>
+            <DashboardLayout>
+              <LabResultEntry />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab/reports"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Patient', 'Admin', 'Receptionist']}>
+            <DashboardLayout>
+              <LabResultsView />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Billing routes */}
+      <Route
+        path="/billing/invoices"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Insurance Staff', 'Receptionist']}>
+            <DashboardLayout>
+              <InvoicesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/payments"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Insurance Staff', 'Patient']}>
+            <DashboardLayout>
+              <PaymentsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/my-invoices"
+        element={
+          <ProtectedRoute allowedRoles={['Patient']}>
+            <DashboardLayout>
+              <MyInvoicesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/insurance"
+        element={
+          <ProtectedRoute allowedRoles={['Insurance Staff', 'Admin']}>
+            <DashboardLayout>
+              <InsuranceClaimsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/reports"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Insurance Staff']}>
+            <DashboardLayout>
+              <BillingReportsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Root route - redirect based on auth status */}
       <Route

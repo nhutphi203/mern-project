@@ -1,5 +1,5 @@
 import express from 'express';
-import { labController } from '../models/labController.js';
+import { labController } from '../controller/labController.js';
 import { isAuthenticated, requireRole } from '../middlewares/auth.js';
 
 const router = express.Router();

@@ -1,9 +1,16 @@
 // frontend/src/hooks/useLab.ts
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { labService } from '@/api/lab.service';
 import { LabTest, LabOrder, LabResult } from '@/api/lab.types';
 import { toast } from 'sonner';
+
+interface ILabStatsData {
+    completedOrders: number;
+    pendingOrders: number;
+    totalRevenue: number;
+    // Thêm bất kỳ thuộc tính nào khác mà API trả về cho stats
+}
 
 // Generic API state interface
 interface ApiState<T> {
@@ -20,11 +27,14 @@ export const useLabTests = (filters?: { category?: string; search?: string }) =>
         error: null,
     });
 
+    // Memoize filters to prevent unnecessary re-renders
+    const memoizedFilters = useMemo(() => filters, [filters?.category, filters?.search]);
+
     const fetchTests = useCallback(async () => {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const response = await labService.getAllTests(filters);
+            const response = await labService.getAllTests(memoizedFilters);
             setState({
                 data: response.tests,
                 loading: false,
@@ -37,7 +47,7 @@ export const useLabTests = (filters?: { category?: string; search?: string }) =>
                 error: error instanceof Error ? error.message : 'Failed to fetch tests',
             });
         }
-    }, [filters]);
+    }, [memoizedFilters]);
 
     useEffect(() => {
         fetchTests();
@@ -112,11 +122,14 @@ export const useLabQueue = (filters?: {
         error: null,
     });
 
+    // Memoize filters to prevent unnecessary re-renders
+    const memoizedFilters = useMemo(() => filters, [filters?.status, filters?.priority, filters?.category]);
+
     const fetchQueue = useCallback(async () => {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const response = await labService.getLabQueue(filters);
+            const response = await labService.getLabQueue(memoizedFilters);
             setState({
                 data: response.orders,
                 loading: false,
@@ -129,7 +142,7 @@ export const useLabQueue = (filters?: {
                 error: error instanceof Error ? error.message : 'Failed to fetch lab queue',
             });
         }
-    }, [filters]);
+    }, [memoizedFilters]);
 
     useEffect(() => {
         fetchQueue();
@@ -224,11 +237,14 @@ export const useLabResults = (filters?: {
         error: null,
     });
 
+    // Memoize filters to prevent unnecessary re-renders
+    const memoizedFilters = useMemo(() => filters, [filters?.patientId, filters?.orderId]);
+
     const fetchResults = useCallback(async () => {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const response = await labService.getLabResults(filters);
+            const response = await labService.getLabResults(memoizedFilters);
             setState({
                 data: response.results,
                 loading: false,
@@ -241,7 +257,7 @@ export const useLabResults = (filters?: {
                 error: error instanceof Error ? error.message : 'Failed to fetch lab results',
             });
         }
-    }, [filters]);
+    }, [memoizedFilters]);
 
     useEffect(() => {
         fetchResults();
@@ -294,10 +310,9 @@ export const useLabReport = () => {
     };
 };
 
-// Hook for lab statistics
 export const useLabStats = (dateRange?: { startDate?: string; endDate?: string }) => {
     const [state, setState] = useState<ApiState<{
-        stats: unknown;
+        stats: ILabStatsData | null;
         categoryStats: [];
     }>>({
         data: null,
@@ -305,14 +320,18 @@ export const useLabStats = (dateRange?: { startDate?: string; endDate?: string }
         error: null,
     });
 
+    // Memoize dateRange to prevent unnecessary re-renders
+    const memoizedDateRange = useMemo(() => dateRange, [dateRange?.startDate, dateRange?.endDate]);
+
     const fetchStats = useCallback(async () => {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const response = await labService.getLabStats(dateRange);
+            const response = await labService.getLabStats(memoizedDateRange);
             setState({
                 data: {
-                    stats: response.stats,
+                    // SỬA Ở ĐÂY: Thêm "as ILabStatsData"
+                    stats: response.stats as ILabStatsData,
                     categoryStats: response.categoryStats,
                 },
                 loading: false,
@@ -325,7 +344,7 @@ export const useLabStats = (dateRange?: { startDate?: string; endDate?: string }
                 error: error instanceof Error ? error.message : 'Failed to fetch lab stats',
             });
         }
-    }, [dateRange]);
+    }, [memoizedDateRange]);
 
     useEffect(() => {
         fetchStats();

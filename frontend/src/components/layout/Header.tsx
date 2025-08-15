@@ -94,9 +94,7 @@ const Header = () => {
                     {/* Navigation Links (Desktop) - Bỏ absolute positioning */}
                     <nav className="hidden md:flex items-center space-x-8">
                         {navLinks.map(link => (
-                            <div key={link.to} className="group">
-                                <NavLink to={link.to}>{link.label}</NavLink>
-                            </div>
+                            <NavLink key={link.to} to={link.to}>{link.label}</NavLink>
                         ))}
                     </nav>
 

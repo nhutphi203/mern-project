@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useLabResults, useLabReport } from '@/hooks/useLab';
+import { labService } from '@/api/lab.service';
 import { LabResult } from '../../api/lab.types';
 import { toast } from 'sonner';
 
@@ -33,12 +34,18 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
 
     const handleGenerateReport = async (orderId: string) => {
         try {
-            const report = await generateReport(orderId);
-            // In a real implementation, you might download the report or show it in a modal
-            toast.success('Report generated successfully');
-            console.log('Report:', report);
-        } catch (error) {
-            // Error is handled in the hook
+            // Try PDF download first
+            await labService.downloadLabReportPdf(orderId);
+            toast.success('Report downloaded');
+        } catch (e) {
+            try {
+                // Fallback to JSON generation
+                const report = await generateReport(orderId);
+                toast.success('Report generated successfully');
+                console.log('Report:', report);
+            } catch (error) {
+                // handled in hook
+            }
         }
     };
 
