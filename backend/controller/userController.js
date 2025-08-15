@@ -188,22 +188,7 @@ export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
  * @route   GET /api/v1/users/:id
  * @access  Private (Authenticated users)
  */
-export const getUserById = catchAsyncErrors(async (req, res, next) => {
-    const { id } = req.params;
 
-    // Tìm người dùng trong DB bằng ID từ URL
-    const user = await User.findById(id).select("-password"); // Lấy user và loại bỏ trường password
-
-    if (!user) {
-        return next(new ErrorHandler("User not found.", 404));
-    }
-
-    // Trả về user object trong một key 'user' để khớp với frontend
-    res.status(200).json({
-        success: true,
-        user,
-    });
-});
 export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
     const doctors = await User.find({ role: "Doctor" }).select("-password");
     res.status(200).json({
@@ -222,66 +207,164 @@ export const getAllPatients = catchAsyncErrors(async (req, res, next) => {
     console.log('🔍 [getAllPatients] Request received:', {
         method: req.method,
         url: req.url,
-        headers: req.headers,
         query: req.query,
-        user: req.user ? { id: req.user._id, role: req.user.role } : 'No user'
+        user: req.user ? {
+            id: req.user._id,
+            role: req.user.role,
+            email: req.user.email
+        } : 'No user in request'
     });
+
+    // 🔧 FIX: Validate user exists (should be set by isAuthenticated middleware)
+    if (!req.user) {
+        console.error('❌ [getAllPatients] No user found in request - middleware may have failed');
+        return next(new ErrorHandler('Authentication required. Please login first.', 401));
+    }
+
+    // 🔧 FIX: Check user permissions
+    const allowedRoles = ['Admin', 'Doctor', 'Receptionist'];
+    if (!allowedRoles.includes(req.user.role)) {
+        console.warn('⚠️ [getAllPatients] Access denied for role:', req.user.role);
+        return next(new ErrorHandler(`Access denied. Only ${allowedRoles.join(', ')} can view patient lists.`, 403));
+    }
 
     const { search, gender, role, page = 1, limit = 10 } = req.query;
 
-    // Build filter object
+    // 🔧 FIX: Build filter object more safely
     const filter = { role: "Patient" };
 
-    if (search) {
-        filter.$or = [
-            { firstName: { $regex: search, $options: 'i' } },
-            { lastName: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } }
-        ];
-    }
-
-    if (gender) {
-        filter.gender = gender;
-    }
-
-    console.log('🔍 [getAllPatients] Filter applied:', filter);
-
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
     try {
+        // Add search filter if provided
+        if (search && search.trim()) {
+            const searchTerm = search.trim();
+            filter.$or = [
+                { firstName: { $regex: searchTerm, $options: 'i' } },
+                { lastName: { $regex: searchTerm, $options: 'i' } },
+                { email: { $regex: searchTerm, $options: 'i' } }
+            ];
+            console.log('🔍 [getAllPatients] Search term applied:', searchTerm);
+        }
+
+        // Add gender filter if provided
+        if (gender && ['Male', 'Female'].includes(gender)) {
+            filter.gender = gender;
+            console.log('🔍 [getAllPatients] Gender filter applied:', gender);
+        }
+
+        console.log('🔍 [getAllPatients] Final filter:', JSON.stringify(filter, null, 2));
+
+        // Calculate pagination
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10)); // Max 100, min 1
+        const skip = (pageNum - 1) * limitNum;
+
+        console.log('📄 [getAllPatients] Pagination:', { pageNum, limitNum, skip });
+
         // Execute query with pagination
         const patients = await User.find(filter)
-            .select("-password")
+            .select("-password -otpCode -otpExpires") // Exclude sensitive fields
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(limitNum)
+            .lean(); // Use lean() for better performance
 
         // Get total count for pagination
         const totalCount = await User.countDocuments(filter);
 
-        console.log('✅ [getAllPatients] Success:', {
+        console.log('✅ [getAllPatients] Query successful:', {
             patientsFound: patients.length,
             totalCount,
-            filter
+            pageNum,
+            limitNum,
+            totalPages: Math.ceil(totalCount / limitNum)
         });
 
+        // 🔧 FIX: Return data in the format expected by frontend
         res.status(200).json({
             success: true,
+            message: `Found ${patients.length} patients`,
             data: {
                 patients,
                 count: totalCount,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(totalCount / parseInt(limit))
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(totalCount / limitNum)
             }
         });
+
     } catch (error) {
-        console.error('❌ [getAllPatients] Database error:', error);
-        return next(new ErrorHandler('Database error occurred', 500));
+        console.error('❌ [getAllPatients] Database error:', {
+            error: error.message,
+            stack: error.stack,
+            filter,
+            user: req.user ? { id: req.user._id, role: req.user.role } : 'No user'
+        });
+
+        // 🔧 FIX: Handle specific MongoDB errors
+        if (error.name === 'CastError') {
+            return next(new ErrorHandler('Invalid search parameters provided.', 400));
+        }
+
+        return next(new ErrorHandler('Database error occurred while fetching patients.', 500));
     }
 });
 
+// 🔧 ENHANCED: Fix getUserById with better validation
+export const getUserById = catchAsyncErrors(async (req, res, next) => {
+    const { id } = req.params;
+
+    console.log('🔍 [getUserById] Request for ID:', id, 'by user:', req.user?.role);
+
+    // 🔧 FIX: Validate ObjectId format
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+        console.error('❌ [getUserById] Invalid ObjectId format:', id);
+        return next(new ErrorHandler('Invalid user ID format.', 400));
+    }
+
+    // 🔧 FIX: Check permissions - users can view their own profile or authorized roles can view others
+    const allowedRoles = ['Admin', 'Doctor', 'Receptionist'];
+    const canViewOthers = allowedRoles.includes(req.user.role);
+    const isOwnProfile = req.user._id.toString() === id;
+
+    if (!canViewOthers && !isOwnProfile) {
+        console.warn('⚠️ [getUserById] Access denied - user trying to view other profile');
+        return next(new ErrorHandler('You can only view your own profile.', 403));
+    }
+
+    try {
+        // Find user in DB by ID and exclude sensitive fields
+        const user = await User.findById(id)
+            .select("-password -otpCode -otpExpires")
+            .lean();
+
+        if (!user) {
+            console.warn('⚠️ [getUserById] User not found for ID:', id);
+            return next(new ErrorHandler("User not found.", 404));
+        }
+
+        console.log('✅ [getUserById] User found:', {
+            id: user._id,
+            role: user.role,
+            email: user.email
+        });
+
+        // Return user object in the format expected by frontend
+        res.status(200).json({
+            success: true,
+            message: 'User found successfully',
+            user, // Direct user object for compatibility
+        });
+
+    } catch (error) {
+        console.error('❌ [getUserById] Database error:', {
+            error: error.message,
+            userId: id,
+            requestUser: req.user?._id
+        });
+
+        return next(new ErrorHandler('Error occurred while fetching user data.', 500));
+    }
+});
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     const user = req.user;
     res.status(200).json({

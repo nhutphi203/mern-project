@@ -1,12 +1,62 @@
+// backend/middlewares/auth.js - ENHANCED VERSION
 import passport from 'passport';
 import ErrorHandler from './errorMiddleware.js';
 import { catchAsyncErrors } from './catchAsyncErrors.js';
 
-// Middleware này sẽ sử dụng 'jwt' strategy mà bạn đã cấu hình trong passport.config.js
-// (strategy này đã được dạy cách đọc token từ cookie)
+// 🔧 FIX: Enhanced authentication middleware with better error handling
+export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    console.log('🔐 [isAuthenticated] Processing request:', {
+        method: req.method,
+        url: req.originalUrl,
+        headers: {
+            authorization: req.headers.authorization ? 'Present' : 'Missing',
+            cookie: req.headers.cookie ? 'Present' : 'Missing'
+        }
+    });
 
-// 1. Middleware cho Patient
+    passport.authenticate('jwt', { session: false }, (err, user, info) => {
+        console.log('🔐 [isAuthenticated] Passport result:', {
+            err: err ? err.message : null,
+            user: user ? { id: user._id, role: user.role } : null,
+            info: info ? info.message : null
+        });
+
+        if (err) {
+            console.error('❌ [isAuthenticated] Passport error:', err);
+            return next(err);
+        }
+
+        if (!user) {
+            console.warn('⚠️ [isAuthenticated] No user found - authentication failed');
+            // More specific error message based on info
+            const message = info?.message === 'No auth token'
+                ? 'Authentication token is required. Please login first.'
+                : 'Invalid or expired authentication token. Please login again.';
+
+            return next(new ErrorHandler(message, 401));
+        }
+
+        // 🔧 CRITICAL FIX: Ensure user object has required fields
+        if (!user._id) {
+            console.error('❌ [isAuthenticated] User object missing _id field:', user);
+            return next(new ErrorHandler('Invalid user data. Please login again.', 401));
+        }
+
+        console.log('✅ [isAuthenticated] Authentication successful for user:', {
+            id: user._id,
+            role: user.role,
+            email: user.email
+        });
+
+        req.user = user;
+        next();
+    })(req, res, next);
+});
+
+// Patient-specific authentication
 export const isPatientAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    console.log('🏥 [isPatientAuthenticated] Checking patient access');
+
     passport.authenticate('jwt', { session: false }, (err, user, info) => {
         if (err) {
             return next(err);
@@ -22,8 +72,10 @@ export const isPatientAuthenticated = catchAsyncErrors(async (req, res, next) =>
     })(req, res, next);
 });
 
-// 2. Middleware cho Admin
+// Admin-specific authentication
 export const isAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    console.log('👑 [isAdminAuthenticated] Checking admin access');
+
     passport.authenticate('jwt', { session: false }, (err, user, info) => {
         if (err) {
             return next(err);
@@ -39,8 +91,10 @@ export const isAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
     })(req, res, next);
 });
 
-// 3. Middleware cho Doctor (dựa trên router của bạn)
+// Doctor-specific authentication
 export const isDoctorAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    console.log('👨‍⚕️ [isDoctorAuthenticated] Checking doctor access');
+
     passport.authenticate('jwt', { session: false }, (err, user, info) => {
         if (err) {
             return next(err);
@@ -55,32 +109,55 @@ export const isDoctorAuthenticated = catchAsyncErrors(async (req, res, next) => 
         next();
     })(req, res, next);
 });
-export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
-    passport.authenticate('jwt', { session: false }, (err, user, info) => {
-        if (err) {
-            return next(err);
-        }
-        // Nếu token không hợp lệ hoặc không có, chặn truy cập
-        if (!user) {
-            return next(new ErrorHandler("Unauthorized. You must be logged in to perform this action.", 401));
-        }
-        // Nếu token hợp lệ, gắn user vào request và cho đi tiếp
-        req.user = user;
-        next();
-    })(req, res, next);
-});
+
+// 🔧 NEW: Multi-role authentication middleware
 export const requireRole = (allowedRoles) => {
-    return (req, res, next) => {
+    return catchAsyncErrors(async (req, res, next) => {
+        console.log('🔑 [requireRole] Checking roles:', { allowedRoles, userRole: req.user?.role });
+
         if (!req.user || !allowedRoles.includes(req.user.role)) {
-            // logger.warn(`Forbidden access attempt by user ${req.user?._id} for role-protected route`);
-            return res.status(403).json({
-                success: false,
-                message: "Forbidden: You do not have the required permissions.",
-            });
+            const message = req.user
+                ? `Forbidden. Your role (${req.user.role}) is not authorized for this resource.`
+                : 'Unauthorized. Please log in to access this resource.';
+
+            return next(new ErrorHandler(message, req.user ? 403 : 401));
         }
         next();
-    };
+    });
 };
+
+// 🔧 NEW: Enhanced route protection for patients endpoint
+export const canAccessPatients = catchAsyncErrors(async (req, res, next) => {
+    console.log('📋 [canAccessPatients] Checking patient list access for role:', req.user?.role);
+
+    const allowedRoles = ['Admin', 'Doctor', 'Receptionist'];
+
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+        const message = req.user
+            ? `Access denied. Only ${allowedRoles.join(', ')} can view patient lists.`
+            : 'Authentication required to access patient data.';
+
+        return next(new ErrorHandler(message, req.user ? 403 : 401));
+    }
+
+    console.log('✅ [canAccessPatients] Access granted for role:', req.user.role);
+    next();
+});
+
+// 🔧 NEW: Error handling for invalid ObjectId
+export const validateObjectId = (paramName = 'id') => {
+    return catchAsyncErrors(async (req, res, next) => {
+        const id = req.params[paramName];
+
+        if (id && !id.match(/^[0-9a-fA-F]{24}$/)) {
+            console.error('❌ [validateObjectId] Invalid ObjectId format:', id);
+            return next(new ErrorHandler('Invalid ID format provided.', 400));
+        }
+
+        next();
+    });
+};
+
 export const isDoctor = (req, res, next) => {
     if (req.user.role !== 'Doctor') {
         return next(new ErrorHandler(`Forbidden. Your role (${req.user.role}) is not authorized for this resource.`, 403));

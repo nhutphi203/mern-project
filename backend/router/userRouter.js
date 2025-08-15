@@ -1,3 +1,4 @@
+// backend/router/userRouter.js - FIXED VERSION
 import express from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
@@ -8,7 +9,7 @@ import {
     register,
     addNewAdmin,
     getAllDoctors,
-    getAllPatients, // Thêm import mới
+    getAllPatients,
     getUserDetails,
     logout,
     addNewDoctor,
@@ -17,7 +18,15 @@ import {
     getUserById,
 } from '../controller/userController.js';
 
-import { isAdminAuthenticated, isPatientAuthenticated, isAuthenticated } from "../middlewares/auth.js";
+// 🔧 FIX: Import enhanced middleware functions
+import {
+    isAdminAuthenticated,
+    isPatientAuthenticated,
+    isAuthenticated,
+    requireRole,
+    canAccessPatients,
+    validateObjectId
+} from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -29,6 +38,7 @@ const createToken = (user) => {
         { expiresIn: process.env.JWT_EXPIRES || '7d' }
     );
 };
+
 const setCookie = (res, user, token) => {
     const cookieName = `${user.role.toLowerCase()}Token`;
     const cookieOptions = {
@@ -40,38 +50,168 @@ const setCookie = (res, user, token) => {
     res.cookie(cookieName, token, cookieOptions);
 };
 
-
-// --- CÁC ROUTE POST (CỤ THỂ) ---
+// --- PUBLIC ROUTES (NO AUTHENTICATION REQUIRED) ---
 router.post("/register", register);
 router.post("/login", login);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
+
+// --- ADMIN-ONLY ROUTES ---
 router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
 router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
-router.post('/auth/token-exchange', (req, res) => { /* ... code của bạn ... */ });
 
-
-// --- CÁC ROUTE GET (CỤ THỂ) ---
-router.get("/doctors", getAllDoctors);
-router.get("/patients", isAuthenticated, getAllPatients); // Thêm route mới cho patients
+// --- GENERAL AUTHENTICATED ROUTES ---
 router.get("/logout", isAuthenticated, logout);
-// FIX: Sửa lại route để khớp với frontend.
-// Frontend đang gọi '/api/v1/users/me' để lấy thông tin người dùng hiện tại.
 router.get("/me", isAuthenticated, getUserDetails);
 
+// --- DOCTORS ROUTES ---
+// Public route - anyone can view doctors list
+router.get("/doctors", getAllDoctors);
 
-// --- CÁC ROUTE OAUTH (CỤ THỂ) ---
-router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
-router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`, session: false }), (req, res) => { /* ... code của bạn ... */ });
-router.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
-router.get('/auth/facebook/callback', passport.authenticate('facebook', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook_auth_failed`, session: false }), (req, res) => { /* ... code của bạn ... */ });
-router.get('/auth/github', passport.authenticate('github', { scope: ['user:email'], session: false }));
-router.get('/auth/github/callback', passport.authenticate('github', { failureRedirect: `${process.env.FRONTEND_URL}/login?error=github_auth_failed`, session: false }), (req, res) => { /* ... code của bạn ... */ });
+// 🔧 CRITICAL FIX: Patients route with proper middleware chain
+router.get("/patients",
+    isAuthenticated,      // First: Check if user is authenticated
+    canAccessPatients,    // Second: Check if user role can access patient data
+    getAllPatients        // Finally: Execute the controller
+);
 
+// --- TOKEN EXCHANGE ROUTE (FOR OAUTH) ---
+router.post('/auth/token-exchange', (req, res) => {
+    const { token, user } = req.body;
 
-// --- ROUTE ĐỘNG (ĐẶT Ở CUỐI CÙNG) ---
-// Route này sẽ bắt tất cả các request GET không khớp với các route GET cụ thể ở trên
-router.get("/:id", isAuthenticated, getUserById);
+    if (!token || !user) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token and user data are required'
+        });
+    }
 
+    // Create JWT token
+    const jwtToken = createToken(user);
+
+    // Set cookie
+    setCookie(res, user, jwtToken);
+
+    res.status(200).json({
+        success: true,
+        message: 'Token exchanged successfully',
+        user,
+        token: jwtToken
+    });
+});
+
+// --- OAUTH ROUTES ---
+router.get('/auth/google',
+    passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        session: false
+    })
+);
+
+router.get('/auth/google/callback',
+    passport.authenticate('google', {
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
+        session: false
+    }),
+    (req, res) => {
+        console.log('🔐 [Google OAuth] Callback received:', {
+            user: req.user ? {
+                id: req.user._id,
+                email: req.user.email,
+                role: req.user.role
+            } : 'No user'
+        });
+
+        if (!req.user) {
+            return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+        }
+
+        try {
+            // Create token for the authenticated user
+            const token = createToken(req.user);
+
+            // Set cookie
+            setCookie(res, req.user, token);
+
+            // Redirect to frontend with success indicator
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard?auth=success`);
+        } catch (error) {
+            console.error('❌ [Google OAuth] Token creation failed:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+        }
+    }
+);
+
+router.get('/auth/facebook',
+    passport.authenticate('facebook', {
+        scope: ['email'],
+        session: false
+    })
+);
+
+router.get('/auth/facebook/callback',
+    passport.authenticate('facebook', {
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook_auth_failed`,
+        session: false
+    }),
+    (req, res) => {
+        if (!req.user) {
+            return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+        }
+
+        try {
+            const token = createToken(req.user);
+            setCookie(res, req.user, token);
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard?auth=success`);
+        } catch (error) {
+            console.error('❌ [Facebook OAuth] Token creation failed:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+        }
+    }
+);
+
+router.get('/auth/github',
+    passport.authenticate('github', {
+        scope: ['user:email'],
+        session: false
+    })
+);
+
+router.get('/auth/github/callback',
+    passport.authenticate('github', {
+        failureRedirect: `${process.env.FRONTEND_URL}/login?error=github_auth_failed`,
+        session: false
+    }),
+    (req, res) => {
+        if (!req.user) {
+            return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+        }
+
+        try {
+            const token = createToken(req.user);
+            setCookie(res, req.user, token);
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard?auth=success`);
+        } catch (error) {
+            console.error('❌ [GitHub OAuth] Token creation failed:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+        }
+    }
+);
+
+// 🔧 FIX: Dynamic route should be LAST and use proper validation
+router.get("/:id",
+    isAuthenticated,           // Check authentication
+    validateObjectId('id'),    // Validate ObjectId format
+    getUserById                // Get user by ID
+);
+
+// 🔧 NEW: Health check endpoint for debugging
+router.get('/health/check', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'User router is healthy',
+        timestamp: new Date().toISOString()
+    });
+});
 
 export default router;
