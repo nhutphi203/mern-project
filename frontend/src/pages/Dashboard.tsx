@@ -1,25 +1,16 @@
-// src/pages/Dashboard.tsx - Redesigned by Gemini UI Expert
+// src/pages/Dashboard.tsx - Sử dụng DashboardLayout mới
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useEffect } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCurrentUser } from '@/hooks/useAuth';
+import { useCurrentUser, useAuth } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
-import { Calendar, Clock, ArrowRight, PlusCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { LogOut, Phone, HeartPulse } from 'lucide-react';
-// --- CÁC HELPER COMPONENTS ĐỂ GIÚP GIAO DIỆN SẠCH SẼ HƠN ---
-import { useMemo, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { AlertTriangle } from 'lucide-react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { ClipboardList } from 'lucide-react';
-// 1. Avatar Component: Tự động tạo avatar từ tên nếu không có ảnh
+import { LabDashboardCards, BillingDashboardCards } from '@/components/components/dashboard/DashboardCards';
+import { Calendar, Clock, ArrowRight, PlusCircle, LogOut, Phone, HeartPulse, AlertTriangle, ClipboardList } from 'lucide-react';
+
+// Avatar Component
 const Avatar = ({ name }: { name: string }) => {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
     return (
@@ -28,30 +19,8 @@ const Avatar = ({ name }: { name: string }) => {
         </div>
     );
 };
-const AppointmentStatusBadge = ({ status }: { status: string }) => {
-    const getStatusInfo = () => {
-        switch (status) {
-            case "Pending":
-                return { text: "Đang chờ duyệt", variant: "outline" as const };
-            case "Accepted":
-                return { text: "Đã xác nhận", variant: "default" as const, className: "bg-blue-500" };
-            case "Checked-in":
-                return { text: "Đã check-in", variant: "secondary" as const, className: "bg-yellow-500 text-black" };
-            case "Completed":
-                return { text: "Đã hoàn tất", variant: "default" as const, className: "bg-green-500" };
-            case "Rejected":
-            case "Cancelled":
-                return { text: "Đã hủy/Từ chối", variant: "destructive" as const };
-            default:
-                return { text: status, variant: "outline" as const };
-        }
-    };
 
-    const { text, variant, className } = getStatusInfo();
-    return <Badge variant={variant} className={className}>{text}</Badge>;
-};
-
-// 2. Empty State Component: Hiển thị khi không có lịch hẹn
+// Empty State Component
 const AppointmentsEmptyState = () => {
     const navigate = useNavigate();
     return (
@@ -73,17 +42,12 @@ const AppointmentsEmptyState = () => {
     );
 };
 
-// --- COMPONENT CHÍNH: DASHBOARD ĐÃ ĐƯỢC THIẾT KẾ LẠI ---
-
 const Dashboard = () => {
-    // --- LOGIC GIỮ NGUYÊN 100% ---
     const { data: currentUserData, isLoading: isUserLoading } = useCurrentUser();
     const { logoutMutation, isLogouting } = useAuth();
-    // Sửa lỗi: Khôi phục lại hàm `fetchAppointments`
     const { appointments, isLoading: appointmentsLoading, fetchAppointments } = useAppointments();
     const navigate = useNavigate();
 
-    // Sửa lỗi: Khôi phục lại useEffect để gọi fetchAppointments
     useEffect(() => {
         if (currentUserData) {
             fetchAppointments();
@@ -112,7 +76,6 @@ const Dashboard = () => {
     if (!user) {
         return <Navigate to="/login" replace />;
     }
-    // --- KẾT THÚC PHẦN LOGIC ---
 
     // Kiểm tra role để hiển thị đúng dashboard
     if (user.role === 'Admin') {
@@ -123,163 +86,225 @@ const Dashboard = () => {
         return <Navigate to="/doctor-dashboard" replace />;
     }
 
-    // Chỉ hiển thị Patient Dashboard nếu user là Patient
-    if (user.role !== 'Patient') {
-        return <Navigate to="/login" replace />;
-    }
+    // Dashboard cho Patient
+    if (user.role === 'Patient') {
+        return (
+            <div className="space-y-8">
+                {/* Dashboard header với logout */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                            Welcome back, {user.firstName}!
+                        </h1>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">
+                            Here's your health summary for today.
+                        </p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => logoutMutation()}
+                        disabled={isLogouting}
+                        className="shadow-sm"
+                    >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {isLogouting ? 'Logging out...' : 'Logout'}
+                    </Button>
+                </div>
 
-    return (
-        <div className="min-h-screen w-full bg-slate-50 dark:bg-gray-900 font-sans">
-            <style>
-                {`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-                  body { font-family: 'Inter', sans-serif; }
-                  @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-                  .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-                `}
-            </style>
+                {/* Main dashboard content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left column - Profile & Quick Actions */}
+                    <div className="lg:col-span-1 space-y-6">
+                        {/* Profile Card */}
+                        <Card className="shadow-lg">
+                            <CardHeader className="text-center items-center pt-8">
+                                <Avatar name={`${user.firstName} ${user.lastName}`} />
+                                <CardTitle className="mt-4 text-xl">{user.firstName} {user.lastName}</CardTitle>
+                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </CardHeader>
+                            <CardContent className="pt-2 pb-6 px-6">
+                                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300 border-t pt-4">
+                                    <div className="flex items-center">
+                                        <Phone className="h-4 w-4 mr-3 text-teal-500" />
+                                        {user.phone}
+                                    </div>
+                                    <div className="flex items-center">
+                                        <HeartPulse className="h-4 w-4 mr-3 text-teal-500" />
+                                        {user.gender}
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Calendar className="h-4 w-4 mr-3 text-teal-500" />
+                                        Born on {new Date(user.dob).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <Button
+                                    className="w-full mt-4 bg-teal-50 hover:bg-teal-100 text-teal-700"
+                                    variant="secondary"
+                                    onClick={() => navigate(`/patient-profile/${user._id}`)}
+                                >
+                                    View Full Profile
+                                </Button>
+                            </CardContent>
+                        </Card>
 
-            <Header />
+                        {/* Medical Records Card */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <ClipboardList className="h-5 w-5 text-blue-500" />
+                                    My Medical Records
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground text-sm">
+                                    View your past medical history, diagnoses, and prescriptions from your doctors.
+                                </p>
+                            </CardContent>
+                            <CardFooter>
+                                <Link to="/medical-records" className="w-full">
+                                    <Button className="w-full">
+                                        View Records <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </CardFooter>
+                        </Card>
 
-            <main className="pt-24 pb-16">
-                <div className="container mx-auto px-4">
-
-                    {/* Phần Header của Dashboard */}
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10 animate-fade-in">
-                        <div>
-                            <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">
-                                Welcome back, {user.firstName}!
-                            </h1>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
-                                Here's your health summary for today.
-                            </p>
+                        {/* Quick Actions */}
+                        <div className="space-y-4">
+                            <Link to="/book-appointment" className="block">
+                                <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
+                                    <CardContent className="p-6 flex items-center gap-4">
+                                        <div className="h-12 w-12 bg-teal-100 dark:bg-teal-900/50 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                                            <PlusCircle className="h-6 w-6 text-teal-600 dark:text-teal-300" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Book Appointment</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Schedule your next visit</p>
+                                        </div>
+                                        <ArrowRight className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                            <Card className="hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer">
+                                <CardContent className="p-6 flex items-center gap-4">
+                                    <div className="h-12 w-12 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                                        <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-300" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">Emergency Care</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">24/7 services available</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
-                        <Button variant="outline" onClick={() => logoutMutation()} disabled={isLogouting} className="shadow-sm">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            {isLogouting ? 'Logging out...' : 'Logout'}
-                        </Button>
                     </div>
 
-                    {/* Bố cục 2 cột chính */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                        {/* Cột bên trái: Profile & Quick Actions */}
-                        <div className="lg:col-span-1 space-y-8">
-                            {/* Card Profile mới */}
-                            <Card className="rounded-2xl shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                                <CardHeader className="text-center items-center pt-8">
-                                    <Avatar name={`${user.firstName} ${user.lastName}`} />
-                                    <CardTitle className="mt-4 text-2xl">{user.firstName} {user.lastName}</CardTitle>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
-                                </CardHeader>
-                                <CardContent className="pt-2 pb-6 px-6">
-                                    <div className="text-base space-y-4 text-gray-700 dark:text-gray-300 border-t pt-4">
-                                        <div className="flex items-center"><Phone className="h-5 w-5 mr-4 text-teal-500" /> {user.phone}</div>
-                                        <div className="flex items-center"><HeartPulse className="h-5 w-5 mr-4 text-teal-500" /> {user.gender}</div>
-                                        <div className="flex items-center"><Calendar className="h-5 w-5 mr-4 text-teal-500" /> Born on {new Date(user.dob).toLocaleDateString()}</div>
-                                    </div>
-                                    <Button
-                                        className="w-full mt-6 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:hover:bg-teal-900 dark:text-teal-300 shadow-sm"
-                                        variant="secondary"
-                                        onClick={() => navigate(`/patient-profile/${user._id}`)}
-                                    >
-                                        View Full Profile
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                            <Card className="flex flex-col justify-between">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <ClipboardList className="h-6 w-6 text-blue-500" />
-                                        My Medical Records
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">
-                                        View your past medical history, diagnoses, and prescriptions from your doctors.
-                                    </p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Link to="/medical-records" className="w-full">
-                                        <Button className="w-full">
-                                            View Records <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                </CardFooter>
-                            </Card>
-                            {/* Quick Actions */}
-                            <div className="space-y-4">
-                                <Link to="/book-appointment" className="block animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                                    <Card className="rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                                        <CardContent className="p-6 flex items-center gap-5">
-                                            <div className="h-14 w-14 bg-teal-100 dark:bg-teal-900/50 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
-                                                <PlusCircle className="h-7 w-7 text-teal-600 dark:text-teal-300" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">Book Appointment</h3>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">Schedule your next visit</p>
-                                            </div>
-                                            <ArrowRight className="h-5 w-5 text-gray-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                                <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                                    <Card className="rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                                        <CardContent className="p-6 flex items-center gap-5">
-                                            <div className="h-14 w-14 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
-                                                <AlertTriangle className="h-7 w-7 text-red-600 dark:text-red-300" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">Emergency Care</h3>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">24/7 services available</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Cột bên phải: Lịch hẹn */}
-                        <div className="lg:col-span-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                            <Card className="rounded-2xl shadow-lg h-full">
-                                <CardHeader>
-                                    <CardTitle className="text-2xl">My Appointments</CardTitle>
-                                    <p className="text-gray-500 dark:text-gray-400 text-sm">You have {userAppointments.length} upcoming appointments.</p>
-                                </CardHeader>
-                                <CardContent>
-                                    {appointmentsLoading ? (
-                                        <div className="text-center py-10">Loading appointments...</div>
-                                    ) : userAppointments.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {userAppointments.map((apt) => (
-                                                <div key={apt._id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors">
-                                                    <div>
-                                                        <p className="font-semibold text-lg text-gray-800 dark:text-gray-200">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</p>
-                                                        <p className="text-sm text-gray-500 dark:text-gray-400">{apt.department}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                                                        <div className="flex items-center gap-2">
-                                                            <Calendar className="h-4 w-4 text-gray-400" />
-                                                            <span>{new Date(apt.appointment_date).toLocaleDateString()}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock className="h-4 w-4 text-gray-400" />
-                                                            <span>{new Date(apt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                    </div>
-                                                    {getStatusBadge(apt.status)}
+                    {/* Right column - Appointments */}
+                    <div className="lg:col-span-2">
+                        <Card className="shadow-lg h-full">
+                            <CardHeader>
+                                <CardTitle className="text-xl">My Appointments</CardTitle>
+                                <p className="text-muted-foreground text-sm">
+                                    You have {userAppointments.length} appointments.
+                                </p>
+                            </CardHeader>
+                            <CardContent>
+                                {appointmentsLoading ? (
+                                    <div className="text-center py-10">Loading appointments...</div>
+                                ) : userAppointments.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {userAppointments.map((apt) => (
+                                            <div key={apt._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                                        Dr. {apt.doctor.firstName} {apt.doctor.lastName}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{apt.department}</p>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <AppointmentsEmptyState />
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
+                                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-gray-400" />
+                                                        <span>{new Date(apt.appointment_date).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="h-4 w-4 text-gray-400" />
+                                                        <span>{new Date(apt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                </div>
+                                                {getStatusBadge(apt.status)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <AppointmentsEmptyState />
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
-            </main>
-            <Footer />
+            </div>
+        );
+    }
+
+    // Dashboard cho các role khác (Lab Technician, Insurance Staff, etc.)
+    return (
+        <div className="space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                        {user.role} Dashboard
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        Welcome back, {user.firstName} {user.lastName}
+                    </p>
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => logoutMutation()}
+                    disabled={isLogouting}
+                    className="shadow-sm"
+                >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {isLogouting ? 'Logging out...' : 'Logout'}
+                </Button>
+            </div>
+
+            {/* Role-specific dashboard cards */}
+            {(['Lab Technician', 'Admin'].includes(user.role)) && <LabDashboardCards />}
+            {(['Admin', 'Insurance Staff', 'Patient'].includes(user.role)) && <BillingDashboardCards />}
+
+            {/* Additional content for each role can be added here */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Role-specific quick action buttons */}
+                        {user.role === 'Lab Technician' && (
+                            <>
+                                <Button asChild className="w-full">
+                                    <Link to="/lab/queue">Lab Queue</Link>
+                                </Button>
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link to="/lab/results">Lab Results</Link>
+                                </Button>
+                            </>
+                        )}
+                        {user.role === 'Insurance Staff' && (
+                            <>
+                                <Button asChild className="w-full">
+                                    <Link to="/billing/insurance">Insurance Claims</Link>
+                                </Button>
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link to="/billing/invoices">Invoices</Link>
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

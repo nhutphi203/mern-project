@@ -7,7 +7,7 @@ import {
 
 // Import middleware xác thực của bạn. 
 // Giả sử tên file là auth.js và có hàm isAdminAuthenticated
-import { isAdminAuthenticated } from '../middlewares/auth.js';
+import { isAdminAuthenticated, isDoctorAuthenticated } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get("/:patientId", isPatientAuthenticated, getPatientProfile);
 
 
 // Route POST: Vẫn giữ nguyên, chỉ Admin/Bác sĩ mới được tạo/sửa hồ sơ.
-router.post("/", isAdminAuthenticated, createOrUpdatePatientProfile);
+router.post("/", isAdminAuthenticated, isDoctorAuthenticated, createOrUpdatePatientProfile);
 
 
 export default router;

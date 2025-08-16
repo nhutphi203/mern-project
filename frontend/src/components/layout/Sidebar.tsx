@@ -60,23 +60,29 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                         <Button
                             variant="ghost"
                             className={cn(
-                                "w-full justify-start gap-3 h-10",
+                                "w-full justify-start gap-3 h-10 transition-all duration-300",
                                 level > 0 && "pl-8",
                                 isActive && "bg-primary/10 text-primary"
                             )}
                         >
-                            {item.icon}
-                            <span className="flex-1 text-left">{item.label}</span>
+                            <span className="min-w-[1.5rem] flex justify-center">
+                                {item.icon}
+                            </span>
+                            <span className="flex-1 text-left whitespace-nowrap">
+                                {item.label}
+                            </span>
                             {badgeCount && badgeCount > 0 && (
-                                <Badge variant="secondary" className="ml-auto mr-2">
+                                <Badge variant="secondary" className="ml-auto mr-2 text-xs">
                                     {badgeCount}
                                 </Badge>
                             )}
-                            {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                            ) : (
-                                <ChevronRight className="h-4 w-4" />
-                            )}
+                            <span>
+                                {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                )}
+                            </span>
                         </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="space-y-1">
@@ -94,16 +100,20 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 variant="ghost"
                 asChild
                 className={cn(
-                    "w-full justify-start gap-3 h-10",
+                    "w-full justify-start gap-3 h-10 transition-all duration-300",
                     level > 0 && "pl-8",
                     isActive && "bg-primary/10 text-primary"
                 )}
             >
                 <Link to={itemPath}>
-                    {item.icon}
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className="min-w-[1.5rem] flex justify-center">
+                        {item.icon}
+                    </span>
+                    <span className="flex-1 text-left whitespace-nowrap">
+                        {item.label}
+                    </span>
                     {badgeCount && badgeCount > 0 && (
-                        <Badge variant="secondary" className="ml-auto">
+                        <Badge variant="secondary" className="ml-auto text-xs">
                             {badgeCount}
                         </Badge>
                     )}
@@ -113,26 +123,64 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     };
 
     return (
-        <div className={cn("flex h-full w-64 flex-col border-r bg-background", className)}>
-            <div className="p-6">
-                <Link to="/dashboard" className="flex items-center gap-2">
-                    <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                        <span className="text-primary-foreground font-bold text-sm">M</span>
-                    </div>
-                    <span className="font-bold text-lg">MediFlow</span>
-                </Link>
-            </div>
+        <div className="sidebar-container">
+            {/* CSS cho sidebar behavior */}
+            <style>{`
+                .sidebar-container:hover .sidebar {
+                    transform: translateX(0);
+                    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+                }
+                
+                .sidebar-trigger {
+                    transition: background 0.2s ease;
+                }
+                
+                .sidebar-trigger:hover {
+                    background: linear-gradient(to right, rgba(59, 130, 246, 0.08), transparent);
+                }
+                
+                /* Responsive */
+                @media (max-width: 768px) {
+                    .sidebar-container:hover .sidebar-overlay {
+                        opacity: 1;
+                        pointer-events: auto;
+                    }
+                }
+            `}</style>
 
-            <nav className="flex-1 space-y-1 p-4">
-                {navigationItems.map(item => renderNavigationItem(item))}
-            </nav>
+            {/* Trigger zone - vùng kích hoạt hover ở cạnh trái màn hình */}
+            <div className="sidebar-trigger fixed left-0 top-0 w-4 h-full z-[60] bg-transparent cursor-pointer" />
 
-            {/* Role indicator */}
-            <div className="p-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                    Logged in as <span className="font-medium">{userRole}</span>
+            {/* Sidebar chính - ẩn hoàn toàn mặc định */}
+            <aside className={cn(
+                "sidebar fixed left-0 top-0 h-full w-64 bg-background border-r z-50 transition-all duration-300 ease-in-out shadow-lg",
+                "transform -translate-x-full", // Ẩn hoàn toàn
+                className
+            )}>
+                {/* Logo section */}
+                <div className="p-4 border-b bg-background">
+                    <Link to="/dashboard" className="flex items-center gap-3">
+                        <div className="h-8 w-8  rounded-lg flex  justify-center flex-shrink-0">
+                        </div>
+
+                    </Link>
                 </div>
-            </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 space-y-1 p-4 overflow-y-auto bg-background">
+                    {navigationItems.map(item => renderNavigationItem(item))}
+                </nav>
+
+                {/* Role indicator */}
+                <div className="p-4 border-t bg-background">
+                    <div className="text-sm text-muted-foreground whitespace-nowrap">
+                        Logged in as <span className="font-medium">{userRole}</span>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Overlay backdrop cho mobile */}
+            <div className="sidebar-overlay fixed inset-0 bg-black/20 z-30 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden" />
         </div>
     );
 };

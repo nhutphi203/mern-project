@@ -1,31 +1,36 @@
-// frontend/src/components/layout/DashboardLayout.tsx
-import React, { ReactNode } from 'react';
-import { useCurrentUser } from '@/hooks/useAuth';
-import Sidebar from './Sidebar';
+// src/components/layout/DashboardLayout.tsx
+import React from 'react';
 import Header from './Header';
-import { Toaster } from '@/components/ui/sonner';
+import Sidebar from './Sidebar';
 
 interface DashboardLayoutProps {
-    children: ReactNode;
+    children: React.ReactNode;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-    const { data: currentUser } = useCurrentUser();
-
-    if (!currentUser) {
-        return <div>Loading...</div>;
-    }
-
     return (
-        <div className="flex h-screen bg-background">
-            <Sidebar />
-            <div className="flex-1 flex flex-col">
+        <div className="min-h-screen bg-gray-50 relative">
+            {/* Header cố định trên cùng */}
+            <div className="fixed top-0 left-0 right-0 z-[100]">
                 <Header />
-                <main className="flex-1 overflow-auto p-6">
-                    {children}
-                </main>
             </div>
-            <Toaster />
+
+            {/* Sidebar với hover effect - ẩn hoàn toàn */}
+            <Sidebar />
+
+            {/* Main content - không cần padding-left vì sidebar không chiếm chỗ */}
+            <main
+                className="pt-20 min-h-screen transition-all duration-300 ease-in-out"
+                style={{
+                    // Content luôn chiếm full width vì sidebar overlay
+                    width: '100%',
+                    paddingLeft: '0'
+                }}
+            >
+                <div className="p-6">
+                    {children}
+                </div>
+            </main>
         </div>
     );
 };

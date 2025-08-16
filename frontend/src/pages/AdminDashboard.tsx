@@ -1,11 +1,11 @@
-
 // src/pages/AdminDashboard.tsx
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import {
     Users,
     Calendar,
@@ -16,8 +16,10 @@ import {
     XCircle,
     Clock,
     Activity,
-    ClipboardList // 1. THÊM ICON NÀY (thay cho ClipboardUser)
-
+    ClipboardList,
+    Search,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { useCurrentUser, useAuth } from '@/hooks/useAuth';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -32,6 +34,49 @@ const AdminDashboard = () => {
     const { messages } = useMessages();
     const { doctors } = useDoctors();
     const { stats, isLoadingStats } = useDashboardStats();
+
+    // States cho phân trang và tìm kiếm
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5; // Số lịch hẹn trên mỗi trang
+
+    // Logic lọc và phân trang
+    const { filteredAppointments, totalPages, paginatedAppointments } = useMemo(() => {
+        if (!appointments) return { filteredAppointments: [], totalPages: 0, paginatedAppointments: [] };
+
+        // Bước 1: Lọc theo từ khóa tìm kiếm
+        const filtered = appointments.filter(appointment => {
+            const searchLower = searchTerm.toLowerCase();
+            const fullName = `${appointment.firstName} ${appointment.lastName}`.toLowerCase();
+            const doctorName = `${appointment.doctor.firstName} ${appointment.doctor.lastName}`.toLowerCase();
+
+            return (
+                fullName.includes(searchLower) ||
+                appointment.email.toLowerCase().includes(searchLower) ||
+                appointment.phone.includes(searchTerm) ||
+                doctorName.includes(searchLower) ||
+                appointment.status.toLowerCase().includes(searchLower) ||
+                appointment.department.toLowerCase().includes(searchLower)
+            );
+        });
+
+        // Bước 2: Tính toán phân trang
+        const totalPagesCount = Math.ceil(filtered.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginated = filtered.slice(startIndex, endIndex);
+
+        return {
+            filteredAppointments: filtered,
+            totalPages: totalPagesCount,
+            paginatedAppointments: paginated
+        };
+    }, [appointments, searchTerm, currentPage, itemsPerPage]);
+
+    // Reset về trang 1 khi tìm kiếm
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     if (isLoading) {
         return (
@@ -62,6 +107,82 @@ const AdminDashboard = () => {
         }
     };
 
+    // Functions cho phân trang
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    // Render pagination controls
+    const renderPaginationControls = () => {
+        if (totalPages <= 1) return null;
+
+        const pageNumbers = [];
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i);
+        }
+
+        return (
+            <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-muted-foreground">
+                    Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredAppointments.length)} trong tổng số {filteredAppointments.length} lịch hẹn
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                    </Button>
+
+                    {pageNumbers.map(pageNum => (
+                        <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(pageNum)}
+                        >
+                            {pageNum}
+                        </Button>
+                    ))}
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
@@ -82,7 +203,6 @@ const AdminDashboard = () => {
 
             <main className="container mx-auto px-4 py-8">
                 {/* Stats Cards */}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {/* Card: Total Appointments */}
                     <Card>
@@ -118,7 +238,7 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Card: Accepted Appointments (VÍ DỤ THÊM MỚI) */}
+                    {/* Card: Accepted Appointments */}
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
@@ -135,13 +255,24 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Card: Doctors (Giữ nguyên, vì nó lấy từ hook khác) */}
+                    {/* Card: Doctors */}
                     <Card>
                         <CardContent className="p-6">
-                            {/* ... code cho Total Doctors giữ nguyên ... */}
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <Users className="h-6 w-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">
+                                        {doctors?.length ?? 0}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">Bác sĩ</p>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
+
                 <div className="mb-8">
                     <Card>
                         <CardHeader>
@@ -157,11 +288,10 @@ const AdminDashboard = () => {
                                     Màn hình Check-in (Lễ tân)
                                 </Link>
                             </Button>
-                            {/* Bạn có thể thêm các nút khác ở đây trong tương lai */}
                         </CardContent>
                     </Card>
                 </div>
-                {/* --- KẾT THÚC PHẦN THÊM --- */}
+
                 {/* Main Content Tabs */}
                 <Tabs defaultValue="appointments" className="space-y-6">
                     <TabsList>
@@ -171,7 +301,7 @@ const AdminDashboard = () => {
                         <TabsTrigger value="settings">Settings</TabsTrigger>
                     </TabsList>
 
-                    {/* Appointments Tab */}
+                    {/* Enhanced Appointments Tab với Phân trang và Tìm kiếm */}
                     <TabsContent value="appointments">
                         <Card>
                             <CardHeader>
@@ -181,83 +311,109 @@ const AdminDashboard = () => {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {appointments?.length === 0 ? (
+                                {/* Search Input */}
+                                <div className="mb-6">
+                                    <div className="relative max-w-md">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                                        <Input
+                                            placeholder="Tìm kiếm theo tên, email, bác sĩ, trạng thái..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-9"
+                                        />
+                                    </div>
+                                    {searchTerm && (
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Tìm thấy {filteredAppointments.length} kết quả cho "{searchTerm}"
+                                        </p>
+                                    )}
+                                </div>
+
+                                {paginatedAppointments.length === 0 ? (
                                     <div className="text-center py-8">
                                         <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                                        <p className="text-muted-foreground">No appointments found</p>
+                                        <p className="text-muted-foreground">
+                                            {searchTerm ? "Không tìm thấy lịch hẹn phù hợp" : "No appointments found"}
+                                        </p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
-                                        {appointments?.map((appointment) => (
-                                            <div
-                                                key={appointment._id}
-                                                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                                            >
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                        <h4 className="font-medium">
-                                                            {appointment.firstName} {appointment.lastName}
-                                                        </h4>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {appointment.email} • {appointment.phone}
-                                                        </p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            Dr. {appointment.doctor.firstName} {appointment.doctor.lastName} • {appointment.department}
-                                                        </p>
+                                    <>
+                                        {/* Appointments List */}
+                                        <div className="space-y-4">
+                                            {paginatedAppointments.map((appointment) => (
+                                                <div
+                                                    key={appointment._id}
+                                                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                                                >
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div>
+                                                            <h4 className="font-medium">
+                                                                {appointment.firstName} {appointment.lastName}
+                                                            </h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {appointment.email} • {appointment.phone}
+                                                            </p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Dr. {appointment.doctor.firstName} {appointment.doctor.lastName} • {appointment.department}
+                                                            </p>
+                                                        </div>
+                                                        <Badge className={getStatusColor(appointment.status)}>
+                                                            {appointment.status}
+                                                        </Badge>
                                                     </div>
-                                                    <Badge className={getStatusColor(appointment.status)}>
-                                                        {appointment.status}
-                                                    </Badge>
-                                                </div>
 
-                                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                                                    <span>Date: {appointment.appointment_date}</span>
-                                                    <span>NIC: {appointment.nic}</span>
-                                                    <span>Gender: {appointment.gender}</span>
-                                                </div>
-
-                                                <div className="text-sm text-muted-foreground mb-3">
-                                                    <p>Address: {appointment.address}</p>
-                                                </div>
-
-                                                {appointment.status === 'Pending' && (
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => handleStatusUpdate(appointment._id, 'Accepted')}
-                                                            disabled={isUpdating}
-                                                        >
-                                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                                            Accept
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleStatusUpdate(appointment._id, 'Rejected')}
-                                                            disabled={isUpdating}
-                                                        >
-                                                            <XCircle className="mr-2 h-4 w-4" />
-                                                            Reject
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            onClick={() => deleteAppointment(appointment._id)}
-                                                            disabled={isDeleting}
-                                                        >
-                                                            Delete
-                                                        </Button>
+                                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                                                        <span>Date: {appointment.appointment_date}</span>
+                                                        <span>NIC: {appointment.nic}</span>
+                                                        <span>Gender: {appointment.gender}</span>
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+
+                                                    <div className="text-sm text-muted-foreground mb-3">
+                                                        <p>Address: {appointment.address}</p>
+                                                    </div>
+
+                                                    {appointment.status === 'Pending' && (
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleStatusUpdate(appointment._id, 'Accepted')}
+                                                                disabled={isUpdating}
+                                                            >
+                                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                                Accept
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleStatusUpdate(appointment._id, 'Rejected')}
+                                                                disabled={isUpdating}
+                                                            >
+                                                                <XCircle className="mr-2 h-4 w-4" />
+                                                                Reject
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                onClick={() => deleteAppointment(appointment._id)}
+                                                                disabled={isDeleting}
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Pagination Controls */}
+                                        {renderPaginationControls()}
+                                    </>
                                 )}
                             </CardContent>
                         </Card>
                     </TabsContent>
 
-                    {/* Messages Tab */}
+                    {/* Messages Tab - Không thay đổi */}
                     <TabsContent value="messages">
                         <Card>
                             <CardHeader>
@@ -301,7 +457,7 @@ const AdminDashboard = () => {
                         </Card>
                     </TabsContent>
 
-                    {/* Doctors Tab */}
+                    {/* Doctors Tab - Không thay đổi */}
                     <TabsContent value="doctors">
                         <Card>
                             <CardHeader>
@@ -356,7 +512,7 @@ const AdminDashboard = () => {
                         </Card>
                     </TabsContent>
 
-                    {/* Settings Tab */}
+                    {/* Settings Tab - Không thay đổi */}
                     <TabsContent value="settings">
                         <Card>
                             <CardHeader>

@@ -84,3 +84,4 @@ export const patientsApi = {
         return apiRequest<ApiResponse<PatientsResponse>>(`/api/v1/users/patients/search?${queryParams.toString()}`);
     }
 };
+
