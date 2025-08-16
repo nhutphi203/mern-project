@@ -37,13 +37,18 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     };
 
     const getBadgeCount = (key: string): number | undefined => {
-        switch (key) {
-            case 'lab-queue':
-                return canViewLabQueue ? labQueue?.length : undefined;
-            case 'invoices':
-                return canViewInvoices ? invoices?.length : undefined;
-            default:
-                return undefined;
+        try {
+            switch (key) {
+                case 'lab-queue':
+                    return canViewLabQueue ? (labQueue?.length || 0) : undefined;
+                case 'invoices':
+                    return canViewInvoices ? (invoices?.length || 0) : undefined;
+                default:
+                    return undefined;
+            }
+        } catch (error) {
+            console.warn(`Badge count error for ${key}:`, error);
+            return undefined;
         }
     };
 

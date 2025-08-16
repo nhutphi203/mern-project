@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LabTest, LabOrder } from '../../api/lab.types';
 import { toast } from 'sonner';
-
+import axios from 'axios';
 interface LabOrderFormProps {
     encounterId: string;
     patientId: string;
@@ -27,30 +27,20 @@ const LabOrderForm: React.FC<LabOrderFormProps> = ({
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
+    const [labTests, setLabTests] = useState([]);
 
     const categories = ['Hematology', 'Chemistry', 'Microbiology', 'Immunology', 'Pathology', 'Radiology'];
 
     useEffect(() => {
         fetchAvailableTests();
-    }, [selectedCategory, searchTerm]);
+    }, []);
 
     const fetchAvailableTests = async () => {
         try {
-            const queryParams = new URLSearchParams();
-            if (selectedCategory) queryParams.append('category', selectedCategory);
-            if (searchTerm) queryParams.append('search', searchTerm);
-
-            const response = await fetch(`/api/v1/lab/tests?${queryParams}`, {
-                credentials: 'include'
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch tests');
-
-            const data = await response.json();
-            setAvailableTests(data.tests);
+            const res = await axios.get('/api/v1/lab-tests/all');
+            setLabTests(res.data);
         } catch (error) {
-            console.error('Error fetching tests:', error);
-            toast.error('Failed to load available tests');
+            console.log('Lỗi khi lấy danh sách xét nghiệm', error);
         }
     };
 

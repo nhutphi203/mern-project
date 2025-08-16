@@ -1,6 +1,6 @@
 import express from 'express';
-import { encounterController } from '../controller/encounterController.js';
-import { isAuthenticated, isDoctorAuthenticated } from '../middlewares/auth.js';
+import { encounterController, getRecentEncounters, getEncounterById } from '../controller/encounterController.js';
+import { isAdminAuthenticated, isAuthenticated, isDoctorAuthenticated, isDoctorOrAdminAuthenticated } from '../middlewares/auth.js';
 
 // Đổi tên thành encounterRouter cho nhất quán
 const encounterRouter = express.Router();
@@ -19,4 +19,15 @@ encounterRouter.get(
     encounterController.getEncounterDetails
 );
 
+encounterRouter.get('/',
+    isAuthenticated,
+    isDoctorOrAdminAuthenticated, // SỬ DỤNG MIDDLEWARE MỚI
+    getRecentEncounters
+);
+
+encounterRouter.get('/:id',
+    isAuthenticated,
+    isAdminAuthenticated, isDoctorAuthenticated,
+    encounterController.getEncounterDetails
+);
 export default encounterRouter;

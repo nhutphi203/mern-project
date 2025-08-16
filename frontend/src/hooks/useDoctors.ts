@@ -3,11 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { doctorApi } from '@/api'; // Sửa: Chỉ import doctorApi
 import type { AddDoctorRequest } from '@/api/doctors';
 import { useToast } from '@/components/ui/use-toast'; // Sửa đường dẫn nếu cần
+import { apiRequest } from '@/api/config';
 
 export const useDoctors = () => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
-
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['doctors'],
+        queryFn: () => apiRequest('/api/v1/users/doctors'),
+    });
     // Get all doctors
     const doctorsQuery = useQuery({
         queryKey: ['doctors'],

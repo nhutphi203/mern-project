@@ -28,73 +28,58 @@ export class ApiError extends Error {
         this.name = 'ApiError';
     }
 }
-// --- NÂNG CẤP HÀM apiRequest ---
 export const apiRequest = async <T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> => {
     const url = `${API_BASE_URL}${endpoint}`;
-
-    // 1. Lấy token từ localStorage
-    // Tên key 'token' này phải khớp với tên bạn dùng để lưu khi đăng nhập
     const token = localStorage.getItem('token');
 
-    // 2. Xây dựng headers
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
 
-    // 3. Nếu có token, đính kèm vào header 'Authorization'
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Debug logging
-    console.log('🔍 [apiRequest] Request details:', {
-        url,
-        method: options.method || 'GET',
-        headers,
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0
-    });
-
     try {
         const response = await fetch(url, {
             ...options,
-            headers, // Sử dụng headers đã được xây dựng
-            credentials: 'include', // Giữ lại để xử lý cookie nếu có
+            headers,
+            credentials: 'include',
         });
 
-        console.log('🔍 [apiRequest] Response received:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-        });
+        // ✅ FIX: Check content type BEFORE parsing
+        const contentType = response.headers.get('content-type');
+
+        if (!contentType?.includes('application/json')) {
+            throw new ApiError(
+                `Server returned ${response.status}: Expected JSON but got ${contentType || 'unknown content type'}`,
+                response.status
+            );
+        }
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-            console.error('❌ [apiRequest] API Error:', {
-                status: response.status,
-                data
-            });
             throw new ApiError(data.message || 'API request failed', response.status);
         }
 
-        console.log('✅ [apiRequest] Success:', data);
-
-        // 4. Trả về toàn bộ object data từ API
-        // Điều này quan trọng vì các hàm API của bạn đang mong đợi { success, data, message }
         return data as T;
 
     } catch (error) {
-        console.error('❌ [apiRequest] Request failed:', error);
-        // Xử lý các lỗi mạng hoặc lỗi không phải JSON
         if (error instanceof ApiError) {
             throw error;
         }
-        throw new ApiError('An unexpected error occurred. Please check the network connection.', 500);
+
+        // Handle JSON parsing errors
+        if (error instanceof SyntaxError && error.message.includes('Unexpected token')) {
+            throw new ApiError('Server returned invalid response. Please check your connection or contact support.', 500);
+        }
+
+        throw new ApiError('Network error occurred. Please check your connection.', 500);
     }
 };
 // For file uploads (multipart/form-data)

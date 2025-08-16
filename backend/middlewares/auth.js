@@ -126,21 +126,16 @@ export const requireRole = (allowedRoles) => {
     });
 };
 
-// 🔧 NEW: Enhanced route protection for patients endpoint
 export const canAccessPatients = catchAsyncErrors(async (req, res, next) => {
-    console.log('📋 [canAccessPatients] Checking patient list access for role:', req.user?.role);
-
     const allowedRoles = ['Admin', 'Doctor', 'Receptionist'];
 
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-        const message = req.user
-            ? `Access denied. Only ${allowedRoles.join(', ')} can view patient lists.`
-            : 'Authentication required to access patient data.';
-
-        return next(new ErrorHandler(message, req.user ? 403 : 401));
+        return next(new ErrorHandler(
+            `Access denied. Your role (${req.user?.role || 'Unknown'}) cannot access patient data.`,
+            403
+        ));
     }
 
-    console.log('✅ [canAccessPatients] Access granted for role:', req.user.role);
     next();
 });
 
@@ -164,3 +159,12 @@ export const isDoctor = (req, res, next) => {
     }
     next();
 };
+export const isDoctorOrAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
+    const userRole = req.user.role;
+    if (userRole !== "Doctor" && userRole !== "Admin") {
+        return next(
+            new ErrorHandler(`${userRole} not authorized for this resource!`, 403)
+        );
+    }
+    next();
+});

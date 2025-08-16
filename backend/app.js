@@ -53,10 +53,20 @@ app.use('/api/v1/reception', receptionRouter);
 app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/appointment", appointmentRouter);
-app.use('/api/v1/encounters', encounterRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/services", serviceCatalogRouter);
 // Middleware xử lý lỗi phải nằm ở cuối cùng
+app.use('*', (req, res, next) => {
+    // Always return JSON for API routes
+    if (req.originalUrl.startsWith('/api/')) {
+        return res.status(404).json({
+            success: false,
+            message: `API endpoint ${req.originalUrl} not found`,
+            timestamp: new Date().toISOString()
+        });
+    }
+    next();
+});
 app.use(errorMiddleware);
 
 export default app;
