@@ -16,12 +16,53 @@ cloudinary.v2.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Hàm để hiển thị tất cả các route đã đăng ký
+const listEndpoints = (app) => {
+    const routes = [];
+
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+            // Route được đăng ký trực tiếp
+            routes.push({
+                path: middleware.route.path,
+                methods: Object.keys(middleware.route.methods).join(', ').toUpperCase()
+            });
+        } else if (middleware.name === 'router') {
+            // Router-level middleware
+            middleware.handle.stack.forEach((handler) => {
+                if (handler.route) {
+                    const path = handler.route.path;
+                    const basePath = middleware.regexp.toString()
+                        .replace('\\^', '')
+                        .replace('\\/?(?=\\/|$)', '')
+                        .replace(/\\\//g, '/');
+                    
+                    const fullPath = basePath.replace(/\(\?:\(\[\^\\\/\]\+\?\)\)/g, '') + path;
+                    routes.push({
+                        path: fullPath,
+                        methods: Object.keys(handler.route.methods).join(', ').toUpperCase()
+                    });
+                }
+            });
+        }
+    });
+
+    console.log('📋 API Routes:');
+    routes.forEach(route => {
+        console.log(`${route.methods.padEnd(8)} ${route.path}`);
+    });
+};
+
 // Kết nối DB và khởi động server
 mongoose.connect(process.env.MONGO_URI, { dbName: "hospitalDB" })
     .then(() => {
         console.log("✅ MongoDB connected successfully!");
         app.listen(process.env.PORT, () => {
             console.log(`🚀 Server listening on port ${process.env.PORT}`);
+            // In ra tất cả các route đã đăng ký
+            if (process.env.NODE_ENV !== 'production') {
+                listEndpoints(app);
+            }
         });
     })
     .catch((err) => {

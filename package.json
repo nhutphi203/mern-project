@@ -5,5 +5,8 @@
   },
   "devDependencies": {
     "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.83"
   }
 }

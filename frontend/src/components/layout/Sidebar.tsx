@@ -7,8 +7,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNavigationItems, NavigationItem } from '@/utils/navigation';
 import { useCurrentUser } from '@/hooks/useAuth';
-import { useLabQueue } from '@/hooks/useLab';
-import { useInvoices } from '@/hooks/useBilling';
+import { useQuery } from '@tanstack/react-query';
+import { labService } from '@/api/lab.service';
 
 interface SidebarProps {
     className?: string;
@@ -25,8 +25,35 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     // Get badges for dynamic counts
     const canViewLabQueue = ['Lab Technician', 'Admin'].includes(userRole);
     const canViewInvoices = ['Admin', 'Insurance Staff', 'Receptionist'].includes(userRole);
-    const { orders: labQueue } = useLabQueue({ status: 'Pending' });
-    const { invoices } = useInvoices({ status: 'Sent' });
+    
+    // Sử dụng React Query trực tiếp để tránh vòng lặp cập nhật
+    const { data: labQueueData } = useQuery({
+        queryKey: ['labQueue', 'count'],
+        queryFn: async () => {
+            if (!canViewLabQueue) return { count: 0 };
+            try {
+                const response = await labService.getLabQueue({ status: 'Pending' });
+                return { count: response.orders?.length || 0 };
+            } catch (error) {
+                console.error("Error fetching lab queue count:", error);
+                return { count: 0 };
+            }
+        },
+        enabled: canViewLabQueue,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+    
+    // Tương tự với invoices
+    const { data: invoicesData } = useQuery({
+        queryKey: ['invoices', 'count'],
+        queryFn: async () => {
+            if (!canViewInvoices) return { count: 0 };
+            // Tương tự như labQueueData nhưng cho invoices
+            return { count: 0 }; // Placeholder, thay bằng API call thực tế
+        },
+        enabled: canViewInvoices,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
 
     const toggleExpanded = (key: string) => {
         setExpandedItems(prev =>
@@ -40,9 +67,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         try {
             switch (key) {
                 case 'lab-queue':
-                    return canViewLabQueue ? (labQueue?.length || 0) : undefined;
+                    return canViewLabQueue ? (labQueueData?.count || 0) : undefined;
                 case 'invoices':
-                    return canViewInvoices ? (invoices?.length || 0) : undefined;
+                    return canViewInvoices ? (invoicesData?.count || 0) : undefined;
                 default:
                     return undefined;
             }

@@ -13,6 +13,9 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
             cookie: req.headers.cookie ? 'Present' : 'Missing'
         }
     });
+    
+    // Check if this is an API request
+    const isApiRequest = req.originalUrl.startsWith('/api/');
 
     passport.authenticate('jwt', { session: false }, (err, user, info) => {
         console.log('🔐 [isAuthenticated] Passport result:', {
@@ -23,6 +26,14 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
 
         if (err) {
             console.error('❌ [isAuthenticated] Passport error:', err);
+            
+            if (isApiRequest) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Authentication error',
+                    code: 'AUTH_ERROR'
+                });
+            }
             return next(err);
         }
 
@@ -33,12 +44,27 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
                 ? 'Authentication token is required. Please login first.'
                 : 'Invalid or expired authentication token. Please login again.';
 
+            if (isApiRequest) {
+                return res.status(401).json({
+                    success: false,
+                    message: message,
+                    code: 'UNAUTHORIZED'
+                });
+            }
             return next(new ErrorHandler(message, 401));
         }
 
         // 🔧 CRITICAL FIX: Ensure user object has required fields
         if (!user._id) {
             console.error('❌ [isAuthenticated] User object missing _id field:', user);
+            
+            if (isApiRequest) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid user data. Please login again.',
+                    code: 'INVALID_USER'
+                });
+            }
             return next(new ErrorHandler('Invalid user data. Please login again.', 401));
         }
 
@@ -52,7 +78,6 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
         next();
     })(req, res, next);
 });
-
 // Patient-specific authentication
 export const isPatientAuthenticated = catchAsyncErrors(async (req, res, next) => {
     console.log('🏥 [isPatientAuthenticated] Checking patient access');
@@ -109,17 +134,28 @@ export const isDoctorAuthenticated = catchAsyncErrors(async (req, res, next) => 
         next();
     })(req, res, next);
 });
-
-// 🔧 NEW: Multi-role authentication middleware
 export const requireRole = (allowedRoles) => {
     return catchAsyncErrors(async (req, res, next) => {
         console.log('🔑 [requireRole] Checking roles:', { allowedRoles, userRole: req.user?.role });
+
+        // Kiểm tra nếu API request hay không dựa vào đường dẫn
+        const isApiRequest = req.originalUrl.startsWith('/api/');
 
         if (!req.user || !allowedRoles.includes(req.user.role)) {
             const message = req.user
                 ? `Forbidden. Your role (${req.user.role}) is not authorized for this resource.`
                 : 'Unauthorized. Please log in to access this resource.';
-
+                
+            // Nếu là API request, luôn trả về JSON error response
+            if (isApiRequest) {
+                return res.status(req.user ? 403 : 401).json({
+                    success: false,
+                    message: message,
+                    code: req.user ? 'FORBIDDEN' : 'UNAUTHORIZED'
+                });
+            }
+            
+            // Nếu không, tiếp tục với error handler thông thường
             return next(new ErrorHandler(message, req.user ? 403 : 401));
         }
         next();

@@ -10,7 +10,7 @@ import { useDoctors } from '@/hooks/useDoctors'; // <-- 1. Import hook mới đ�
 import type { User } from '@/api/types'; // <-- 2. Import type User thật từ API
 
 // Component Card cho từng bác sĩ, sử dụng đúng cấu trúc dữ liệu từ `User` type
-const DoctorCard = ({ doctor }: { doctor: User }) => (
+export const DoctorCard = ({ doctor }: { doctor: User }) => (
     <Card className="text-center hover:shadow-xl transition-shadow duration-300 flex flex-col">
         <img
             src={`https://ui-avatars.com/api/?name=${doctor.firstName}&background=random`}

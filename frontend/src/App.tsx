@@ -1,4 +1,4 @@
-// src/App.tsx - FIXED VERSION
+// src/App.tsx - FIXED VERSION with proper authentication handling
 
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 // Layout and Pages
 import Layout from './components/layout/Layout';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import DashboardPublic from './pages/PublicDashboard'; // Public Dashboard
 import AboutPage from './pages/About';
 import ServicesPage from './pages/Services';
 import DoctorsPage from './pages/Doctors';
@@ -18,15 +19,19 @@ import AdminDashboard from './pages/AdminDashboard';
 import Contact from './pages/Contact';
 import BookAppointment from './pages/BookAppointment';
 import PatientProfilePage from './pages/PatientProfile';
-import MedicalRecords from './pages/MedicalRecords'; // Import trang mới
-import DoctorDashboard from './pages/DoctorDashboard'; // 1. Import trang mới
-import ProtectedRoute from './components/ProtectedRoute'; // 2. Import ProtectedRoute
+import MedicalRecords from './pages/MedicalRecords';
+import DoctorDashboard from './pages/DoctorDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 import ReceptionDashboard from './pages/ReceptionDashboard';
+
 // Lab pages
 import LabOrdersPage from '@/pages/Lab/LabOrdersPage';
-import LabResultsView from '@/pages/Lab/LabResultsView';
+import LabResultsPage from '@/pages/Lab/LabResultsPage';
+import LabReportsPage from '@/pages/Lab/LabReportsPage';
+import LabResultsView from '@/pages/Lab/LabResultsView'; // Keep for backward compatibility
 import LabResultEntry from '@/pages/Lab/LabResultEntry';
 import LabQueue from '@/components/Lab/LabQueue';
+
 // Billing pages
 import InvoicesPage from '@/pages/Billing/InvoicesPage';
 import PaymentsPage from '@/pages/Billing/PaymentsPage';
@@ -35,14 +40,21 @@ import BillingReportsPage from '@/pages/Billing/BillingReportsPage';
 import MyInvoicesPage from '@/pages/Billing/MyInvoicesPage';
 import PatientsPage from '@/pages/PatientsPage';
 import AppointmentsPage from '@/pages/AppointmentsPage';
+import PatientRecordDetailPage from './pages/PatientRecordDetailPage';
 
-import PatientRecordDetailPage from './pages/PatientRecordDetailPage'; // Import trang chi tiết hồ sơ bệnh nhân
 const AppContent = () => {
-  const { data: currentUser, isLoading, isError, error } = useCurrentUser();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // 🔧 FIX: Only call useCurrentUser for protected routes or when needed
+  const isPublicRoute = ['/', '/about', '/services', '/doctors', '/contact', '/login', '/register'].includes(location.pathname);
+  const shouldCheckAuth = !isPublicRoute || searchParams.get('auth') === 'success';
+
+  // Conditional authentication check
+  const authQuery = useCurrentUser({ enabled: shouldCheckAuth });
+  const { data: currentUser, isLoading, isError } = authQuery;
 
   // 🔧 FIX: Handle social login success
   useEffect(() => {
@@ -50,75 +62,107 @@ const AppContent = () => {
     const errorStatus = searchParams.get('error');
 
     if (authStatus === 'success') {
-      console.log('Social login success detected');
+      console.log('✅ Social login success detected');
       toast({
         title: 'Login Successful',
         description: 'Welcome to MediFlow!',
       });
 
-      // Clear the URL params
-      const newUrl = location.pathname;
+      // Clear the URL params and redirect to appropriate dashboard
+      const newUrl = location.pathname.split('?')[0];
       window.history.replaceState({}, '', newUrl);
 
-      // Force refetch user data
-      // This is handled automatically by react-query when component mounts
+      // Force redirect to dashboard (this will trigger auth check)
+      navigate('/dashboard', { replace: true });
+      return;
     }
 
     if (errorStatus) {
-      const errorMessages = {
+      const errorMessages: Record<string, string> = {
         'social_failed': 'Social login failed. Please try again.',
         'auth_failed': 'Authentication failed. Please try again.',
-        'server_error': 'Server error occurred. Please try again later.'
+        'server_error': 'Server error occurred. Please try again later.',
+        'google_auth_failed': 'Google login failed. Please try again.',
+        'facebook_auth_failed': 'Facebook login failed. Please try again.',
+        'github_auth_failed': 'GitHub login failed. Please try again.',
       };
 
       toast({
         title: 'Login Failed',
-        description: errorMessages[errorStatus as keyof typeof errorMessages] || 'Unknown error occurred.',
+        description: errorMessages[errorStatus] || 'Unknown error occurred.',
         variant: 'destructive',
       });
 
-      // Clear error from URL
+      // Clear error from URL and redirect to login
       navigate('/login', { replace: true });
     }
   }, [searchParams, location.pathname, toast, navigate]);
 
-  // 🔧 FIX: Simplified redirect logic
+  // 🔧 FIX: Simplified redirect logic - only for authenticated users
   useEffect(() => {
-    console.log("APP EFFECT:", {
-      currentUser: currentUser?.user,
-      isLoading,
-      isError,
-      pathname: location.pathname
-    });
+    // Don't do anything on public routes unless there's a user
+    if (isPublicRoute && !currentUser?.user) {
+      return;
+    }
 
     // Don't redirect while loading
-    if (isLoading) return;
+    if (isLoading) {
+      console.log('🔄 Authentication loading...');
+      return;
+    }
+
+    console.log("🔍 APP EFFECT:", {
+      currentUser: currentUser?.user ? {
+        id: currentUser.user._id,
+        email: currentUser.user.email,
+        role: currentUser.user.role
+      } : null,
+      isLoading,
+      isError,
+      pathname: location.pathname,
+      isPublicRoute
+    });
 
     // If we have a user and they're on login/register page, redirect them
     if (currentUser?.user) {
       if (location.pathname === '/login' || location.pathname === '/register') {
-        const targetPath = currentUser.user.role === 'Admin' ? '/admin-dashboard' : '/dashboard';
-        console.log(`User authenticated, redirecting to ${targetPath}`);
+        const targetPath = getRedirectPath(currentUser.user.role);
+        console.log(`✅ User authenticated, redirecting from ${location.pathname} to ${targetPath}`);
         navigate(targetPath, { replace: true });
+        return;
       }
     }
 
     // If no user and trying to access protected routes, redirect to login
-    if (!currentUser?.user && isError) {
-      const protectedRoutes = ['/dashboard', '/admin-dashboard', '/book-appointment'];
+    if (!currentUser?.user && isError && !isPublicRoute) {
+      const protectedRoutes = ['/dashboard', '/admin-dashboard', '/doctor-dashboard', '/reception-dashboard'];
       const isProtectedRoute = protectedRoutes.some(route =>
         location.pathname.startsWith(route)
       );
 
       if (isProtectedRoute) {
-        console.log('No user detected, redirecting to login');
+        console.log('❌ No user detected for protected route, redirecting to login');
         navigate('/login', { replace: true });
       }
     }
-  }, [currentUser, isLoading, isError, navigate, location.pathname]);
+  }, [currentUser, isLoading, isError, navigate, location.pathname, isPublicRoute]);
 
-  // Show loading state
-  if (isLoading) {
+  // Helper function to determine redirect path based on role
+  const getRedirectPath = (role: string) => {
+    switch (role) {
+      case 'Admin':
+        return '/admin-dashboard';
+      case 'Doctor':
+        return '/doctor-dashboard';
+      case 'Receptionist':
+        return '/reception-dashboard';
+      default:
+        return '/dashboard';
+    }
+  };
+
+  // 🔧 FIX: Show loading only for protected routes
+  if (isLoading && !isPublicRoute) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -131,7 +175,10 @@ const AppContent = () => {
 
   return (
     <Routes>
-      {/* Public routes */}
+      {/* 🆕 ROOT ROUTE - Public Dashboard (No authentication required) */}
+      <Route path="/" element={<DashboardPublic />} />
+
+      {/* Public routes - Authentication */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -140,18 +187,13 @@ const AppContent = () => {
       <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
       <Route path="/doctors" element={<Layout><DoctorsPage /></Layout>} />
       <Route path="/contact" element={<Layout><Contact /></Layout>} />
-      <Route path="/medical-records" element={<Layout><MedicalRecords /></Layout>} />
-      <Route
-        path="/patient-records/:patientId"
-        element={
-          <ProtectedRoute allowedRoles={['Doctor']}>
-            <Layout>
-              <PatientRecordDetailPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      {/* Protected routes */}
+
+      {/* Semi-public routes - Can be accessed but some features require auth */}
+      <Route path="/book-appointment" element={<Layout><BookAppointment /></Layout>} />
+
+      {/* Test routes - for development only */}
+
+      {/* Protected routes with role-based access */}
       <Route
         path="/dashboard"
         element={
@@ -162,16 +204,7 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/doctor-dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['Doctor']}>
-            <DashboardLayout>
-              <DoctorDashboard />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/admin-dashboard"
         element={
@@ -182,6 +215,18 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/doctor-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout>
+              <DoctorDashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/reception-dashboard"
         element={
@@ -192,8 +237,40 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/book-appointment" element={<BookAppointment />} />
-      <Route path="/patient-profile/:patientId" element={<PatientProfilePage />} />
+
+      {/* Patient & Medical Records */}
+      <Route
+        path="/medical-records"
+        element={
+          <ProtectedRoute allowedRoles={['Patient']}>
+            <Layout>
+              <MedicalRecords />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patient-profile/:patientId"
+        element={
+          <ProtectedRoute allowedRoles={['Patient', 'Doctor', 'Admin']}>
+            <Layout>
+              <PatientProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patient-records/:patientId"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Admin']}>
+            <Layout>
+              <PatientRecordDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Patient Management routes */}
       <Route
@@ -240,12 +317,13 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      {/* Lab Results - NEW DEDICATED PAGE */}
       <Route
         path="/lab/results"
         element={
           <ProtectedRoute allowedRoles={['Lab Technician', 'Doctor', 'Patient', 'Admin']}>
             <DashboardLayout>
-              <LabResultsView showPatientInfo />
+              <LabResultsPage showPatientInfo />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -255,7 +333,7 @@ const AppContent = () => {
         element={
           <ProtectedRoute allowedRoles={['Patient']}>
             <DashboardLayout>
-              <LabResultsView showPatientInfo={false} />
+              <LabResultsPage showPatientInfo={false} />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -270,8 +348,20 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      {/* Lab Reports - NEW DEDICATED PAGE */}
       <Route
         path="/lab/reports"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Patient', 'Admin', 'Receptionist']}>
+            <DashboardLayout>
+              <LabReportsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Keep old route for backward compatibility */}
+      <Route
+        path="/lab/legacy"
         element={
           <ProtectedRoute allowedRoles={['Doctor', 'Patient', 'Admin', 'Receptionist']}>
             <DashboardLayout>
@@ -333,20 +423,18 @@ const AppContent = () => {
         }
       />
 
-      {/* Root route - redirect based on auth status */}
+      {/* 404 */}
       <Route
-        path="/"
+        path="*"
         element={
-          currentUser?.user
-            ? (currentUser.user.role === 'Admin'
-              ? <Navigate to="/admin-dashboard" replace />
-              : <Navigate to="/dashboard" replace />)
-            : <Navigate to="/login" replace />
+          <Layout>
+            <div className="text-center py-20">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">404 - Page Not Found</h1>
+              <p className="text-gray-600">The page you're looking for doesn't exist.</p>
+            </div>
+          </Layout>
         }
       />
-
-      {/* 404 */}
-      <Route path="*" element={<Layout><div>404 - Page Not Found</div></Layout>} />
     </Routes>
   );
 };

@@ -21,7 +21,12 @@ export interface LabTest {
 }
 
 export interface LabOrderTest {
+    _id?: string;
     testId: string;
+    testName?: string; // Populated from backend
+    category?: 'Hematology' | 'Chemistry' | 'Microbiology' | 'Immunology' | 'Pathology' | 'Radiology';
+    specimen?: 'Blood' | 'Urine' | 'Stool' | 'Sputum' | 'CSF' | 'Other';
+    turnaroundTime?: number;
     priority: 'Routine' | 'Urgent' | 'STAT';
     instructions?: string;
     status: 'Ordered' | 'Collected' | 'InProgress' | 'Completed' | 'Cancelled';
@@ -57,14 +62,25 @@ export interface LabOrder {
 
 export interface LabResult {
     _id: string;
-    orderId: string;
+    orderId: string | {
+        _id: string;
+        orderId: string;
+        orderedAt: string;
+        completedAt?: string;
+    };
     testId: {
         _id: string;
         testName: string;
         category: string;
         normalRange: unknown;
     };
-    patientId: string;
+    patientId: string | {
+        _id: string;
+        firstName: string;
+        lastName: string;
+        dob: string;
+        gender: string;
+    };
     technicianId: {
         _id: string;
         firstName: string;

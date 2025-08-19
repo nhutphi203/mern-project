@@ -1,6 +1,6 @@
 // frontend/src/pages/Lab/LabResultsView.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLabResults, useLabReport } from '@/hooks/useLab';
 import { labService } from '@/api/lab.service';
 import { LabResult } from '../../api/lab.types';
@@ -22,7 +22,17 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
         orderId: orderId || '',
     });
 
-    const { results, loading, error, refetch } = useLabResults(filters);
+    // For doctor/admin view, show all results by default
+    // For patient view, use their own ID
+    const [shouldLoadAllResults, setShouldLoadAllResults] = useState(true); // Always default to true
+
+    // Use useMemo to stabilize effectiveFilters object
+    const effectiveFilters = useMemo(() =>
+        shouldLoadAllResults ? { patientId: 'all' } : filters,
+        [shouldLoadAllResults, filters]
+    );
+
+    const { results, loading, error, refetch } = useLabResults(effectiveFilters);
     const { generateReport, loading: reportLoading } = useLabReport();
 
     const handleFilterChange = (field: string, value: string) => {
@@ -107,7 +117,7 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
                 {/* Filters - Only show for doctors/admins, not patients */}
                 {showPatientInfo && (
                     <div className="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Patient ID
@@ -132,7 +142,23 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                 />
                             </div>
+                            <div className="flex items-end">
+                                <button
+                                    onClick={() => setShouldLoadAllResults(!shouldLoadAllResults)}
+                                    className={`px-4 py-2 rounded-md ${shouldLoadAllResults
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                >
+                                    {shouldLoadAllResults ? 'Hide All Results' : 'Show All Results'}
+                                </button>
+                            </div>
                         </div>
+                        {shouldLoadAllResults && (
+                            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                                <strong>Note:</strong> Showing all lab results in the system. Use filters above to narrow down results.
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -149,7 +175,7 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
                 <div className="space-y-6">
                     {/* Group results by order */}
                     {results.reduce((groups: { [key: string]: LabResult[] }, result) => {
-                        const orderId = result.orderId;
+                        const orderId = String(result.orderId || '');
                         if (!groups[orderId]) {
                             groups[orderId] = [];
                         }
@@ -158,7 +184,7 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
                     }, {} as { [key: string]: LabResult[] }) &&
                         Object.entries(
                             results.reduce((groups: { [key: string]: LabResult[] }, result) => {
-                                const orderId = result.orderId;
+                                const orderId = String(result.orderId || '');
                                 if (!groups[orderId]) {
                                     groups[orderId] = [];
                                 }
@@ -172,10 +198,10 @@ const LabResultsView: React.FC<LabResultsViewProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900">
-                                                Order #{orderResults[0].orderId}
+                                                Order #{String(orderResults[0]?.orderId || 'Unknown')}
                                             </h3>
                                             <p className="text-sm text-gray-600">
-                                                Performed on: {new Date(orderResults[0].performedAt).toLocaleDateString()}
+                                                Performed on: {orderResults[0]?.performedAt ? new Date(orderResults[0].performedAt).toLocaleDateString() : 'Unknown'}
                                             </p>
                                         </div>
                                         <div className="flex items-center space-x-2">

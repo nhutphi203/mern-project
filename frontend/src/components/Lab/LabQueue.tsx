@@ -1,60 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { LabOrder } from '../../api/lab.types';
 import { toast } from 'sonner';
+import { useLabQueue } from '@/hooks/useLab';
 
 const LabQueue: React.FC = () => {
-    const [orders, setOrders] = useState<LabOrder[]>([]);
-    const [loading, setLoading] = useState(true);
+    // FIX: Use 'Pending' to get newly created orders (order-level status)
     const [filters, setFilters] = useState({
-        status: 'Pending',
+        status: 'Pending', // New orders have order status 'Pending'
         priority: '',
         category: ''
     });
 
     const priorities = ['STAT', 'Urgent', 'Routine'];
     const categories = ['Hematology', 'Chemistry', 'Microbiology', 'Immunology', 'Pathology', 'Radiology'];
+    // FIX: Include both order-level and test-level statuses
+    const statuses = [
+        'Pending',      // Order-level: newly created orders
+        'Ordered',      // Test-level: individual tests ordered
+        'Collected',    // Test-level: samples collected  
+        'InProgress',   // Both levels: processing
+        'Completed',    // Both levels: finished
+        'Cancelled'     // Both levels: cancelled
+    ];
 
-    useEffect(() => {
-        fetchLabQueue();
-    }, [filters]);
+    // Sử dụng hook useLabQueue để lấy dữ liệu thay vì fetch trực tiếp
+    const {
+        orders = [],
+        loading,
+        error,
+        refetch: fetchLabQueue,
+        updateTestStatus
+    } = useLabQueue(filters);
 
-    const fetchLabQueue = async () => {
+    // Hàm updateTestStatus từ hook được sử dụng thay vì tự implement
+    const handleUpdateTestStatus = (orderId: string, testId: string, status: string) => {
         try {
-            const queryParams = new URLSearchParams(
-                Object.entries(filters).filter(([_, value]) => value !== '')
-            );
-
-            const response = await fetch(`/api/v1/lab/queue?${queryParams}`, {
-                credentials: 'include'
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch lab queue');
-
-            const data = await response.json();
-            setOrders(data.orders);
-        } catch (error) {
-            console.error('Error fetching lab queue:', error);
-            toast.error('Failed to load lab queue');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const updateTestStatus = async (orderId: string, testId: string, status: string) => {
-        try {
-            const response = await fetch(`/api/v1/lab/orders/${orderId}/tests/${testId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({ status })
-            });
-
-            if (!response.ok) throw new Error('Failed to update test status');
-
-            toast.success('Test status updated successfully');
-            fetchLabQueue(); // Refresh the queue
+            updateTestStatus(orderId, testId, status);
+            // Không cần gọi fetchLabQueue - hook sẽ tự động refresh
         } catch (error) {
             console.error('Error updating test status:', error);
             toast.error('Failed to update test status');
@@ -71,11 +53,12 @@ const LabQueue: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Ordered': return 'bg-gray-100 text-gray-800';
-            case 'Collected': return 'bg-yellow-100 text-yellow-800';
-            case 'InProgress': return 'bg-blue-100 text-blue-800';
-            case 'Completed': return 'bg-green-100 text-green-800';
-            case 'Cancelled': return 'bg-red-100 text-red-800';
+            case 'Pending': return 'bg-yellow-100 text-yellow-800';     // New orders
+            case 'Ordered': return 'bg-gray-100 text-gray-800';         // Individual tests ordered
+            case 'Collected': return 'bg-blue-100 text-blue-800';       // Samples collected
+            case 'InProgress': return 'bg-purple-100 text-purple-800';  // Processing
+            case 'Completed': return 'bg-green-100 text-green-800';     // Finished
+            case 'Cancelled': return 'bg-red-100 text-red-800';         // Cancelled
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -103,9 +86,11 @@ const LabQueue: React.FC = () => {
                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                             >
-                                <option value="Pending">Pending</option>
-                                <option value="InProgress">In Progress</option>
-                                <option value="Completed">Completed</option>
+                                {/* FIX: Use correct status values that match backend enum */}
+                                <option value="">All Statuses</option>
+                                {statuses.map(status => (
+                                    <option key={status} value={status}>{status}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -141,10 +126,26 @@ const LabQueue: React.FC = () => {
             </div>
 
             {/* Queue Items */}
-            {orders.length === 0 ? (
+            {/* FIX: Add error handling display */}
+            {error ? (
+                <div className="text-center py-12 bg-white rounded-lg shadow border border-red-200">
+                    <div className="text-red-500 text-lg mb-2">Error Loading Lab Queue</div>
+                    <div className="text-red-400 text-sm mb-4">{error}</div>
+                    <button
+                        onClick={() => fetchLabQueue()}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            ) : !orders || orders.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg shadow">
                     <div className="text-gray-500 text-lg">No orders found</div>
-                    <div className="text-gray-400 text-sm mt-2">Try adjusting your filters</div>
+                    <div className="text-gray-400 text-sm mt-2">
+                        {/* FIX: Show current filter info for better debugging */}
+                        Current filters: Status={filters.status || 'All'}, Priority={filters.priority || 'All'}, Category={filters.category || 'All'}
+                    </div>
+                    <div className="text-gray-400 text-sm mt-1">Try adjusting your filters or creating a new lab order</div>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -157,11 +158,14 @@ const LabQueue: React.FC = () => {
                                             Order #{order.orderId}
                                         </h3>
                                         <p className="text-sm text-gray-600">
-                                            Patient: {order.patientId.firstName} {order.patientId.lastName}
-                                            <span className="ml-2">({order.patientId.gender}, {new Date().getFullYear() - new Date(order.patientId.dob).getFullYear()} years)</span>
+                                            Patient: {order.patientId?.firstName} {order.patientId?.lastName}
+                                            {order.patientId && (
+                                                <span className="ml-2">({order.patientId.gender}, {new Date().getFullYear() - new Date(order.patientId.dob).getFullYear()} years)</span>
+                                            )}
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            Doctor: Dr. {order.doctorId.firstName} {order.doctorId.lastName} - {order.doctorId.doctorDepartment}
+                                            Doctor: Dr. {order.doctorId?.firstName} {order.doctorId?.lastName}
+                                            {order.doctorId?.doctorDepartment && ` - ${order.doctorId.doctorDepartment}`}
                                         </p>
                                     </div>
                                     <div className="text-right">
@@ -169,7 +173,7 @@ const LabQueue: React.FC = () => {
                                             Ordered: {new Date(order.orderedAt).toLocaleString()}
                                         </div>
                                         <div className="text-lg font-semibold text-gray-900">
-                                            ${order.totalAmount.toFixed(2)}
+                                            ${order.totalAmount?.toFixed(2) || '0.00'}
                                         </div>
                                     </div>
                                 </div>
@@ -184,20 +188,42 @@ const LabQueue: React.FC = () => {
 
                             <div className="p-4">
                                 <div className="space-y-3">
-                                    {order.tests.map((test, testIndex) => (
+                                    {order.tests?.map((test, testIndex) => (
                                         <div key={testIndex} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
                                             <div className="flex-1">
+                                                <div className="font-medium text-gray-900">
+                                                    {test.testName || 'Unknown Test'}
+                                                </div>
                                                 <div className="flex items-center space-x-3 mt-1">
-                                                    {/* Hiển thị testId thay vì category */}
-                                                    <span className="text-sm bg-gray-200 px-2 py-1 rounded">{test.testId}</span>
+                                                    {/* FIX: Show category instead of testId */}
+                                                    {test.category && (
+                                                        <span className="text-sm bg-gray-200 px-2 py-1 rounded">{test.category}</span>
+                                                    )}
 
-                                                    <span className={`text-xs px-2 py-1 rounded ${getPriorityColor(test.priority)}`}>
-                                                        {test.priority}
-                                                    </span>
+                                                    {test.priority && (
+                                                        <span className={`text-xs px-2 py-1 rounded ${getPriorityColor(test.priority)}`}>
+                                                            {test.priority}
+                                                        </span>
+                                                    )}
 
-                                                    <span className={`text-xs px-2 py-1 rounded ${getStatusColor(test.status)}`}>
-                                                        {test.status}
-                                                    </span>
+                                                    {test.status && (
+                                                        <span className={`text-xs px-2 py-1 rounded ${getStatusColor(test.status)}`}>
+                                                            {test.status}
+                                                        </span>
+                                                    )}
+
+                                                    {/* FIX: Add specimen and turnaround time info */}
+                                                    {test.specimen && (
+                                                        <span className="text-sm text-gray-600">
+                                                            Specimen: {test.specimen}
+                                                        </span>
+                                                    )}
+
+                                                    {test.turnaroundTime && (
+                                                        <span className="text-sm text-gray-600">
+                                                            TAT: {test.turnaroundTime}h
+                                                        </span>
+                                                    )}
 
                                                     {/* Hiển thị instructions nếu có */}
                                                     {test.instructions && (
@@ -225,7 +251,7 @@ const LabQueue: React.FC = () => {
                                             <div className="flex items-center space-x-2">
                                                 {test.status === 'Ordered' && (
                                                     <button
-                                                        onClick={() => updateTestStatus(order._id, test.testId, 'Collected')}
+                                                        onClick={() => handleUpdateTestStatus(order._id, test.testId, 'Collected')}
                                                         className="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700"
                                                     >
                                                         Mark Collected
@@ -233,7 +259,7 @@ const LabQueue: React.FC = () => {
                                                 )}
                                                 {test.status === 'Collected' && (
                                                     <button
-                                                        onClick={() => updateTestStatus(order._id, test.testId, 'InProgress')}
+                                                        onClick={() => handleUpdateTestStatus(order._id, test.testId, 'InProgress')}
                                                         className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                                                     >
                                                         Start Processing

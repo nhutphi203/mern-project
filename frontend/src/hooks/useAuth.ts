@@ -97,12 +97,17 @@ export const useAuth = () => {
 };
 
 // 🔧 FIX: Updated useCurrentUser hook to not depend on localStorage
-export const useCurrentUser = () => {
+export const useCurrentUser = (options: { enabled?: boolean } = {}) => {
+    // Mặc định enabled là true nếu không được truyền vào
+    const { enabled = true } = options;
+
     return useQuery<{ user: User }, Error>({
         queryKey: ['currentUser'],
         queryFn: authApi.getUserDetails,
+        // Sử dụng giá trị enabled được truyền vào ở đây
+        enabled: enabled,
         retry: (failureCount, error) => {
-            // Don't retry if it's an authentication error (401)
+            // Giữ nguyên logic retry của bạn
             if (error instanceof ApiError && error.status === 401) {
                 return false;
             }
@@ -110,7 +115,5 @@ export const useCurrentUser = () => {
         },
         refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
-        // 🔧 REMOVED: enabled condition based on localStorage
-        // Now it will always try to fetch user details if cookie exists
     });
 };

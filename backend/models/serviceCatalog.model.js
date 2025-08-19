@@ -28,7 +28,7 @@ const serviceCatalogSchema = new mongoose.Schema({
     department: {
         type: String,
         required: true,
-        enum: ['Laboratory', 'Radiology', 'Consultation', 'Pharmacy', 'Other'],
+        enum: ['Laboratory', 'Radiology', 'Consultation', 'Pharmacy', 'Dentistry', 'Other'],
     },
     price: {
         type: Number,

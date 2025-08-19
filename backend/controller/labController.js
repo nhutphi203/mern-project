@@ -3,6 +3,9 @@ import ErrorHandler from '../middlewares/errorMiddleware.js';
 import { LabTest } from '../models/labTest.model.js';
 import { LabOrder } from '../models/labOrder.model.js';
 import { LabResult } from '../models/labResult.model.js';
+import { LabReport } from '../models/labReport.model.js';
+import { labService } from '../services/labService.js';
+import mongoose from 'mongoose';
 
 export const labController = {
     // Get all available lab tests
@@ -33,6 +36,11 @@ export const labController = {
         const { encounterId, patientId, tests, clinicalInfo } = req.body;
         const doctorId = req.user._id;
 
+        // Validate required fields
+        if (!patientId) {
+            return next(new ErrorHandler('Patient ID is required', 400));
+        }
+
         if (!tests || tests.length === 0) {
             return next(new ErrorHandler('At least one test must be selected', 400));
         }
@@ -53,8 +61,8 @@ export const labController = {
             return sum + test.price;
         }, 0);
 
-        const labOrder = await LabOrder.create({
-            encounterId,
+        // Create lab order data
+        const orderData = {
             patientId,
             doctorId,
             tests: tests.map(test => ({
@@ -64,7 +72,17 @@ export const labController = {
             })),
             clinicalInfo,
             totalAmount
-        });
+        };
+
+        // Add encounterId only if provided
+        if (encounterId) {
+            orderData.encounterId = encounterId;
+        }
+
+        const labOrder = await LabOrder.create(orderData);
+
+        // Auto-create lab results for this order
+        await labService.createLabResultsFromOrder(labOrder._id);
 
         // Populate the created order
         await labOrder.populate([
@@ -82,9 +100,19 @@ export const labController = {
 
     // Get lab queue for technicians
     getLabQueue: catchAsyncErrors(async (req, res, next) => {
+        // FIX: Use 'Pending' as default to match LabOrder model's order-level status
         const { status = 'Pending', priority, category } = req.query;
 
-        let matchStage = { status };
+        // FIX: Build proper match stage based on status type
+        let matchStage = {};
+
+        // If filtering by test-level statuses, filter on tests.status
+        if (['Ordered', 'Collected'].includes(status)) {
+            matchStage['tests.status'] = status;
+        } else {
+            // For order-level statuses, filter on main status
+            matchStage.status = status;
+        }
 
         if (priority) {
             matchStage['tests.priority'] = priority;
@@ -137,11 +165,13 @@ export const labController = {
                 $group: {
                     _id: '$_id',
                     orderId: { $first: '$orderId' },
-                    patient: { $first: { $arrayElemAt: ['$patient', 0] } },
-                    doctor: { $first: { $arrayElemAt: ['$doctor', 0] } },
+                    // FIX: Use patientId and doctorId to match frontend type definition
+                    patientId: { $first: { $arrayElemAt: ['$patient', 0] } },
+                    doctorId: { $first: { $arrayElemAt: ['$doctor', 0] } },
                     orderedAt: { $first: '$orderedAt' },
                     status: { $first: '$status' },
                     clinicalInfo: { $first: '$clinicalInfo' },
+                    totalAmount: { $first: '$totalAmount' }, // FIX: Include totalAmount
                     tests: {
                         $push: {
                             _id: '$tests._id',
@@ -209,6 +239,9 @@ export const labController = {
         }
 
         await LabOrder.updateOne(updateQuery, { $set: updateData });
+
+        // Update lab queue and potentially create/update report
+        await labService.updateLabQueue(orderId);
 
         // Check if all tests are completed to update order status
         const updatedOrder = await LabOrder.findById(orderId);
@@ -302,6 +335,9 @@ export const labController = {
             }
         );
 
+        // Update lab queue and create/update report if needed
+        await labService.updateLabQueue(orderId);
+
         res.status(201).json({
             success: true,
             message: 'Lab result entered successfully',
@@ -309,36 +345,212 @@ export const labController = {
         });
     }),
 
-    // Get lab results for a patient or order
+    // Get lab results with proper population and filtering
     getLabResults: catchAsyncErrors(async (req, res, next) => {
-        const { patientId, orderId } = req.query;
+        try {
+            const { patientId, orderId, status } = req.query;
+            const limit = parseInt(req.query.limit) || 100;
+            const page = parseInt(req.query.page) || 1;
 
-        if (!patientId && !orderId) {
-            return next(new ErrorHandler('Patient ID or Order ID is required', 400));
+            let filter = {};
+
+            // Add filters based on parameters
+            if (patientId && patientId !== 'all') {
+                filter.patientId = patientId;
+            }
+            if (orderId) filter.orderId = orderId;
+            if (status) filter.status = status;
+
+            // Calculate pagination
+            const limitValue = Math.min(limit, 500);
+            const skipValue = Math.max(0, (page - 1) * limitValue);
+
+            // Query with proper population
+            const results = await LabResult.find(filter)
+                .populate({
+                    path: 'testId',
+                    select: 'testName category normalRange specimen'
+                })
+                .populate({
+                    path: 'patientId',
+                    select: 'firstName lastName dob gender'
+                })
+                .populate({
+                    path: 'technicianId',
+                    select: 'firstName lastName'
+                })
+                .populate({
+                    path: 'verifiedBy',
+                    select: 'firstName lastName'
+                })
+                .populate({
+                    path: 'orderId',
+                    select: 'orderId orderedAt completedAt',
+                    populate: {
+                        path: 'doctorId',
+                        select: 'firstName lastName'
+                    }
+                })
+                .sort({ performedAt: -1 })
+                .skip(skipValue)
+                .limit(limitValue);
+
+            // Get total count for pagination
+            const totalCount = await LabResult.countDocuments(filter);
+
+            res.status(200).json({
+                success: true,
+                count: results.length,
+                totalCount,
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limitValue),
+                results
+            });
+        } catch (error) {
+            console.error('Error fetching lab results:', error);
+            return next(new ErrorHandler('Failed to fetch lab results', 500));
+        }
+    }),
+
+    // Get lab reports
+    getLabReports: catchAsyncErrors(async (req, res, next) => {
+        try {
+            const { patientId, status, startDate, endDate } = req.query;
+            const limit = parseInt(req.query.limit) || 50;
+            const page = parseInt(req.query.page) || 1;
+
+            let filter = {};
+
+            if (patientId && patientId !== 'all') {
+                filter.patientId = patientId;
+            }
+            if (status) filter.status = status;
+
+            if (startDate || endDate) {
+                filter.reportDate = {};
+                if (startDate) filter.reportDate.$gte = new Date(startDate);
+                if (endDate) filter.reportDate.$lte = new Date(endDate);
+            }
+
+            const limitValue = Math.min(limit, 200);
+            const skipValue = Math.max(0, (page - 1) * limitValue);
+
+            const reports = await LabReport.find(filter)
+                .populate({
+                    path: 'patientId',
+                    select: 'firstName lastName dob gender'
+                })
+                .populate({
+                    path: 'labOrderId',
+                    select: 'orderId orderedAt totalAmount',
+                    populate: {
+                        path: 'doctorId',
+                        select: 'firstName lastName doctorDepartment'
+                    }
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'firstName lastName'
+                })
+                .populate({
+                    path: 'reviewedBy',
+                    select: 'firstName lastName'
+                })
+                .populate({
+                    path: 'testResults.testId',
+                    select: 'testName category'
+                })
+                .populate({
+                    path: 'testResults.resultId'
+                })
+                .sort({ reportDate: -1 })
+                .skip(skipValue)
+                .limit(limitValue);
+
+            const totalCount = await LabReport.countDocuments(filter);
+
+            res.status(200).json({
+                success: true,
+                count: reports.length,
+                totalCount,
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limitValue),
+                reports
+            });
+        } catch (error) {
+            console.error('Error fetching lab reports:', error);
+            return next(new ErrorHandler('Failed to fetch lab reports', 500));
+        }
+    }),
+
+    // Create lab report
+    createLabReport: catchAsyncErrors(async (req, res, next) => {
+        const {
+            patientId,
+            labOrderId,
+            summary,
+            finalDiagnosis,
+            recommendations,
+            interpretation,
+            clinicalCorrelation
+        } = req.body;
+
+        const createdBy = req.user._id;
+
+        // Validate that the order exists
+        const order = await LabOrder.findById(labOrderId)
+            .populate('tests.testId');
+
+        if (!order) {
+            return next(new ErrorHandler('Lab order not found', 404));
         }
 
-        let filter = {};
-        if (orderId) filter.orderId = orderId;
-        if (patientId) filter.patientId = patientId;
+        // Get all results for this order
+        const results = await LabResult.find({ orderId: labOrderId })
+            .populate('testId');
 
-        const results = await LabResult.find(filter)
-            .populate('testId', 'testName category normalRange')
-            .populate('technicianId', 'firstName lastName')
-            .populate('verifiedBy', 'firstName lastName')
-            .populate({
-                path: 'orderId',
-                select: 'orderId orderedAt',
-                populate: {
-                    path: 'doctorId',
-                    select: 'firstName lastName'
-                }
-            })
-            .sort({ performedAt: -1 });
+        // Build test results array
+        const testResults = results.map(result => ({
+            testId: result.testId._id,
+            resultId: result._id,
+            summary: `${result.testId.testName}: ${result.result.value} ${result.result.unit || ''} (${result.result.flag})`
+        }));
 
-        res.status(200).json({
+        // Find abnormal findings
+        const abnormalFindings = results
+            .filter(result => result.result.isAbnormal)
+            .map(result => ({
+                testName: result.testId.testName,
+                finding: `${result.result.value} ${result.result.unit || ''}`,
+                significance: result.interpretation || 'See clinical correlation'
+            }));
+
+        const reportData = {
+            patientId,
+            labOrderId,
+            summary,
+            finalDiagnosis,
+            recommendations,
+            createdBy,
+            testResults,
+            abnormalFindings,
+            interpretation,
+            clinicalCorrelation,
+            status: 'Completed'
+        };
+
+        const report = await LabReport.create(reportData);
+
+        await report.populate([
+            { path: 'patientId', select: 'firstName lastName' },
+            { path: 'labOrderId', select: 'orderId' },
+            { path: 'createdBy', select: 'firstName lastName' }
+        ]);
+
+        res.status(201).json({
             success: true,
-            count: results.length,
-            results
+            message: 'Lab report created successfully',
+            report
         });
     }),
 
@@ -346,46 +558,67 @@ export const labController = {
     generateLabReport: catchAsyncErrors(async (req, res, next) => {
         const { orderId } = req.params;
 
-        const order = await LabOrder.findById(orderId)
-            .populate('patientId', 'firstName lastName dob gender phone')
-            .populate('doctorId', 'firstName lastName doctorDepartment')
-            .populate('tests.testId');
+        try {
+            if (!mongoose.Types.ObjectId.isValid(orderId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid order ID format',
+                    code: 'INVALID_ID'
+                });
+            }
 
-        if (!order) {
-            return next(new ErrorHandler('Lab order not found', 404));
+            const order = await LabOrder.findById(orderId)
+                .populate('patientId', 'firstName lastName dob gender phone')
+                .populate('doctorId', 'firstName lastName doctorDepartment')
+                .populate('tests.testId');
+
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Lab order not found',
+                    code: 'NOT_FOUND'
+                });
+            }
+
+            const results = await LabResult.find({ orderId })
+                .populate('testId')
+                .populate('technicianId', 'firstName lastName')
+                .populate('verifiedBy', 'firstName lastName');
+
+            const report = {
+                order: {
+                    orderId: order.orderId,
+                    orderedAt: order.orderedAt,
+                    completedAt: order.completedAt,
+                    status: order.status
+                },
+                patient: order.patientId,
+                doctor: order.doctorId,
+                clinicalInfo: order.clinicalInfo,
+                tests: order.tests.map(test => {
+                    const result = results.find(r => r.testId._id.toString() === test.testId._id.toString());
+                    return {
+                        testName: test.testId.testName,
+                        category: test.testId.category,
+                        status: test.status,
+                        result: result || null,
+                        normalRange: test.testId.normalRange
+                    };
+                })
+            };
+
+            res.status(200).json({
+                success: true,
+                report
+            });
+        } catch (error) {
+            console.error('Error generating lab report:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to generate lab report',
+                code: 'REPORT_ERROR'
+            });
         }
-
-        const results = await LabResult.find({ orderId })
-            .populate('testId')
-            .populate('technicianId', 'firstName lastName')
-            .populate('verifiedBy', 'firstName lastName');
-
-        const report = {
-            order: {
-                orderId: order.orderId,
-                orderedAt: order.orderedAt,
-                completedAt: order.completedAt,
-                status: order.status
-            },
-            patient: order.patientId,
-            doctor: order.doctorId,
-            clinicalInfo: order.clinicalInfo,
-            tests: order.tests.map(test => {
-                const result = results.find(r => r.testId._id.toString() === test.testId._id.toString());
-                return {
-                    testName: test.testId.testName,
-                    category: test.testId.category,
-                    status: test.status,
-                    result: result || null,
-                    normalRange: test.testId.normalRange
-                };
-            })
-        };
-
-        res.status(200).json({
-            success: true,
-            report
-        });
     }),
 
     // Get lab statistics

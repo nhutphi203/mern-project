@@ -4,6 +4,9 @@ import User from '../models/user.model.js';
 
 // Middleware để xác thực token
 export const protect = async (req, res, next) => {
+    // Check if this is an API request
+    const isApiRequest = req.originalUrl.startsWith('/api/');
+    
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
@@ -13,11 +16,19 @@ export const protect = async (req, res, next) => {
             next();
         } catch (error) {
             console.error(error);
-            res.status(401).json({ message: 'Not authorized, token failed' });
+            return res.status(401).json({ 
+                success: false,
+                message: 'Not authorized, token failed',
+                code: 'AUTH_FAILED'
+            });
         }
     }
     if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
+        return res.status(401).json({ 
+            success: false,
+            message: 'Not authorized, no token',
+            code: 'NO_TOKEN'
+        });
     }
 };
 
@@ -25,7 +36,11 @@ export const protect = async (req, res, next) => {
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ message: `User role '${req.user.role}' is not authorized to access this route` });
+            return res.status(403).json({ 
+                success: false,
+                message: `User role '${req.user?.role || 'unknown'}' is not authorized to access this route`,
+                code: 'FORBIDDEN'
+            });
         }
         next();
     };

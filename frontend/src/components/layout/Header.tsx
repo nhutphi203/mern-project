@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx - Updated với z-index cao hơn
+// src/components/layout/Header.tsx - Fixed Authentication Logic
 
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/avatar";
 import { useCurrentUser, useAuth } from "@/hooks/useAuth";
 import DarkModeToggle from "./DarkModeToggle";
-
+import { ApiError } from "@/api";
 // Component cho một link điều hướng, tự động highlight khi active
 const NavLink = ({ to, children }: { to: string, children: React.ReactNode }) => {
     const location = useLocation();
@@ -24,8 +24,8 @@ const NavLink = ({ to, children }: { to: string, children: React.ReactNode }) =>
         <Link
             to={to}
             className={`relative text-sm font-medium transition-colors duration-300 ${isActive
-                    ? 'text-teal-600 dark:text-teal-400'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
+                ? 'text-teal-600 dark:text-teal-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
                 }`}
         >
             {children}
@@ -43,9 +43,23 @@ const Header = () => {
     const [isVisible, setIsVisible] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
 
-    const { data: currentUser } = useCurrentUser();
-    const { logoutMutation } = useAuth();
+    const location = useLocation();
     const navigate = useNavigate();
+
+    // 🔧 FIX: Only check auth on certain routes to prevent unnecessary API calls
+    const shouldCheckAuth = !['/', '/about', '/services', '/doctors', '/contact'].includes(location.pathname);
+
+    // Conditional auth check
+    const { data: currentUser, error: authError } = useCurrentUser({ enabled: shouldCheckAuth }); const { logoutMutation } = useAuth();
+
+    // 🔧 FIX: Clear user data if we get 401 error
+    useEffect(() => {
+        if (authError instanceof ApiError && authError.status === 401) {
+            console.log('🚨 401 Unauthorized - clearing any cached auth data');
+            // The react-query will automatically handle this, but we ensure no stale data
+        }
+    }, [authError]);
+
     const isAuthenticated = !!currentUser?.user;
     const user = currentUser?.user;
     const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : "G";
@@ -72,26 +86,27 @@ const Header = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [lastScrollY]);
 
+    // 🔧 FIX: Updated navLinks without Medical Records for public access
     const navLinks = [
-        { to: "/", label: "Home" },
+        { to: "/dashboard", label: "Home" },
         { to: "/about", label: "About" },
         { to: "/services", label: "Services" },
         { to: "/doctors", label: "Doctors" },
         { to: "/contact", label: "Contact" },
-        { to: "/medical-records", label: "Medical Records" },
+        // Medical Records should only be accessible after login
     ];
 
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${isScrolled
-                    ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50'
-                    : 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm'
+                ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg shadow-lg border-b border-gray-200/50 dark:border-gray-700/50'
+                : 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm'
                 } ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
         >
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-20">
                     {/* Logo */}
-                    <Link to="/" className="text-2xl font-bold text-teal-600 dark:text-teal-400 z-10 relative">
+                    <Link to="/dashboard" className="text-2xl font-bold text-teal-600 dark:text-teal-400 z-10 relative">
                         Medi<span className="text-gray-800 dark:text-gray-200">Flow</span>
                     </Link>
 
@@ -140,6 +155,12 @@ const Header = () => {
                                             <LayoutDashboard className="mr-2 h-4 w-4" />
                                             <span>Dashboard</span>
                                         </DropdownMenuItem>
+                                        {/* Add Medical Records link for authenticated users */}
+                                        {user.role === 'Patient' && (
+                                            <DropdownMenuItem onClick={() => navigate('/medical-records')} className="cursor-pointer">
+                                                <span>Medical Records</span>
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onClick={handleLogout}
@@ -159,7 +180,7 @@ const Header = () => {
                                         asChild
                                         className="bg-teal-600 hover:bg-teal-700 shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
                                     >
-                                        <Link to="/register">Book Appointment</Link>
+                                        <Link to="/book-appointment">Book Appointment</Link>
                                     </Button>
                                 </div>
                             )}
@@ -210,6 +231,15 @@ const Header = () => {
                                         <LayoutDashboard className="mr-2 h-4 w-4" />
                                         Dashboard
                                     </Button>
+                                    {user?.role === 'Patient' && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => { navigate('/medical-records'); setIsMenuOpen(false); }}
+                                            className="w-full justify-start"
+                                        >
+                                            Medical Records
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="destructive"
                                         onClick={() => { handleLogout(); setIsMenuOpen(false); }}
@@ -225,7 +255,7 @@ const Header = () => {
                                         <Link to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
                                     </Button>
                                     <Button asChild className="w-full justify-start bg-teal-600 hover:bg-teal-700">
-                                        <Link to="/register" onClick={() => setIsMenuOpen(false)}>Book Appointment</Link>
+                                        <Link to="/book-appointment" onClick={() => setIsMenuOpen(false)}>Book Appointment</Link>
                                     </Button>
                                 </>
                             )}

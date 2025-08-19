@@ -47,7 +47,10 @@ app.use("/api/v1/medical-records", medicalRecordRouter);
 
 
 // Thêm sau dòng 59
+// Add support for both /api/lab and /api/v1/lab routes for backward compatibility
+import labRouterV1 from './router/labRouterV1.js';
 app.use("/api/v1/lab", labRouter);
+app.use("/api/lab", labRouterV1);
 app.use("/api/v1/billing", billingRouter);
 app.use('/api/v1/reception', receptionRouter);
 app.use('/api/v1/encounters', encounterRouter);
@@ -56,15 +59,32 @@ app.use("/api/v1/appointment", appointmentRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/services", serviceCatalogRouter);
 // Middleware xử lý lỗi phải nằm ở cuối cùng
+app.use((err, req, res, next) => {
+    // Nếu là API request, luôn đảm bảo trả về JSON
+    if (req.originalUrl.startsWith('/api/')) {
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: err.message || 'Internal server error',
+            code: err.code || 'SERVER_ERROR',
+            timestamp: new Date().toISOString()
+        });
+    }
+    // Cho các request khác, tiếp tục đến errorMiddleware tiếp theo
+    next(err);
+});
+
+// Xử lý 404 cho API endpoints
 app.use('*', (req, res, next) => {
-    // Always return JSON for API routes
     if (req.originalUrl.startsWith('/api/')) {
         return res.status(404).json({
             success: false,
             message: `API endpoint ${req.originalUrl} not found`,
+            code: 'NOT_FOUND',
             timestamp: new Date().toISOString()
         });
     }
+    // Cho các request khác, chuyển đến page 404 hoặc middleware khác
     next();
 });
 app.use(errorMiddleware);

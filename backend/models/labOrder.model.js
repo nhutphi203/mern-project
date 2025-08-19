@@ -3,13 +3,13 @@ import mongoose from 'mongoose';
 const labOrderSchema = new mongoose.Schema({
     orderId: {
         type: String,
-        required: true,
+        required: false, // Don't require it since we generate it automatically
         unique: true
     },
     encounterId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Encounter',
-        required: true
+        required: false // Make it optional
     },
     patientId: {
         type: mongoose.Schema.Types.ObjectId,
