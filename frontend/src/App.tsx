@@ -48,9 +48,10 @@ const AppContent = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // 🔧 FIX: Only call useCurrentUser for protected routes or when needed
+  // 🔧 TEMP FIX: Disable auth for development to stop infinite loops
   const isPublicRoute = ['/', '/about', '/services', '/doctors', '/contact', '/login', '/register'].includes(location.pathname);
-  const shouldCheckAuth = !isPublicRoute || searchParams.get('auth') === 'success';
+  const isDevelopment = true; // Set to false when auth is working properly
+  const shouldCheckAuth = !isDevelopment && (!isPublicRoute || searchParams.get('auth') === 'success');
 
   // Conditional authentication check
   const authQuery = useCurrentUser({ enabled: shouldCheckAuth });
