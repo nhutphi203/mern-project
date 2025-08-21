@@ -1,0 +1,501 @@
+{
+    "info": {
+        "name": "Medical Record System API",
+        "description": "Comprehensive API collection for testing medical record functionality with role-based access",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:4000/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "doctorToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "nurseToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "adminToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "patientToken",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login Doctor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"doctor@hospital.com\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.collectionVariables.set('doctorToken', response.token);",
+                                    "    console.log('Doctor token saved:', response.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Nurse",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"nurse@hospital.com\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.collectionVariables.set('nurseToken', response.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Admin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@hospital.com\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.collectionVariables.set('adminToken', response.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Patient",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"patient@hospital.com\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.collectionVariables.set('patientToken', response.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ICD-10 Management",
+            "item": [
+                {
+                    "name": "Search ICD-10 Codes (Doctor)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/icd10/search?query=diabetes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "icd10",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "diabetes"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get ICD-10 Statistics (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/icd10/statistics",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "icd10",
+                                "statistics"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Search ICD-10 as Patient (Should Fail)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{patientToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/icd10/search?query=diabetes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "icd10",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "diabetes"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Medical Records",
+            "item": [
+                {
+                    "name": "Create Medical Record (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"patientId\": \"64f8b3c4d1234567890abcd1\",\n  \"clinicalAssessment\": {\n    \"chiefComplaint\": \"Annual physical examination\",\n    \"historyOfPresentIllness\": \"Patient presents for routine annual check-up. No acute complaints.\",\n    \"physicalExam\": {\n      \"vitalSigns\": {\n        \"bloodPressure\": \"120/80\",\n        \"heartRate\": 72,\n        \"temperature\": 36.8,\n        \"respiratoryRate\": 16,\n        \"oxygenSaturation\": 98\n      },\n      \"generalAppearance\": \"Well-appearing, no acute distress\"\n    }\n  },\n  \"diagnoses\": [{\n    \"icd10Code\": \"Z00.00\",\n    \"icd10Description\": \"Encounter for general adult medical examination without abnormal findings\",\n    \"diagnosisType\": \"Primary\",\n    \"severity\": \"Mild\",\n    \"status\": \"Active\",\n    \"confidence\": \"Confirmed\"\n  }],\n  \"treatmentPlans\": [{\n    \"planName\": \"Preventive Care\",\n    \"planType\": \"Lifestyle\",\n    \"description\": \"Continue healthy lifestyle, annual screening\",\n    \"objectives\": [\"Maintain current health status\", \"Annual health screening\"]\n  }]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/medical-records/enhanced",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "medical-records",
+                                "enhanced"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Medical Records (Doctor)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/medical-records/enhanced",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "medical-records",
+                                "enhanced"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Own Medical Records (Patient)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{patientToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/medical-records/patient/mine",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "medical-records",
+                                "patient",
+                                "mine"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "CPOE Orders",
+            "item": [
+                {
+                    "name": "Create Medication Order (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"patientId\": \"64f8b3c4d1234567890abcd1\",\n  \"orderType\": \"Medication\",\n  \"medicationOrder\": {\n    \"medicationName\": \"Aspirin\",\n    \"genericName\": \"Acetylsalicylic acid\",\n    \"dosage\": \"81mg\",\n    \"route\": \"Oral\",\n    \"frequency\": \"Daily\",\n    \"duration\": \"30 days\",\n    \"instructions\": \"Take with food to reduce stomach irritation\",\n    \"indication\": \"Cardiovascular protection\"\n  },\n  \"clinicalContext\": {\n    \"urgency\": \"Routine\",\n    \"clinicalJustification\": \"Primary prevention of cardiovascular disease\",\n    \"expectedOutcome\": \"Reduced cardiovascular risk\"\n  },\n  \"priority\": \"Routine\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/cpoe/orders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cpoe",
+                                "orders"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get CPOE Orders (Nurse)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{nurseToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/cpoe/orders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cpoe",
+                                "orders"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get CPOE Statistics (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/cpoe/statistics",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cpoe",
+                                "statistics"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Clinical Decision Support",
+            "item": [
+                {
+                    "name": "Check Drug Interactions (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"medications\": [\"Warfarin\", \"Aspirin\"],\n  \"patientId\": \"64f8b3c4d1234567890abcd1\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/cpoe/check-interactions",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cpoe",
+                                "check-interactions"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Check Allergies (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{doctorToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"medication\": \"Penicillin\",\n  \"patientId\": \"64f8b3c4d1234567890abcd1\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/cpoe/check-allergies",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cpoe",
+                                "check-allergies"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

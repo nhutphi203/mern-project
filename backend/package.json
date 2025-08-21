@@ -7,7 +7,11 @@
     "start": "node --env-file=./config/config.env server.js",
     "dev": "nodemon server.js",
     "seed": "node scripts/seeders/index.js",
-    "seed:insurance": "node -e \"import('./scripts/seeders/insuranceSeeder.js').then(m => m.seedInsuranceProviders())\""
+    "seed:insurance": "node -e \"import('./scripts/seeders/insuranceSeeder.js').then(m => m.seedInsuranceProviders())\"",
+    "seed:medical": "node scripts/seeders/masterMedicalRecordsSeeder.js",
+    "seed:icd10": "node -e \"import('./scripts/seeders/icd10Seeder.js').then(m => m.seedICD10Codes())\"",
+    "seed:cpoe": "node -e \"import('./scripts/seeders/cpoeSeeder.js').then(m => m.seedCPOEOrders())\"",
+    "test:medical": "node scripts/testMedicalRecordFunctionality.js"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +25,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.1",
     "express-fileupload": "^1.5.2",
+    "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
     "joi": "^18.0.0",

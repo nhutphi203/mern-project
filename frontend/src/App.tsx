@@ -29,6 +29,20 @@ import LabOrdersPage from '@/pages/Lab/LabOrdersPage';
 import LabResultsPage from '@/pages/Lab/LabResultsPage';
 import LabReportsPage from '@/pages/Lab/LabReportsPage';
 import LabResultsView from '@/pages/Lab/LabResultsView'; // Keep for backward compatibility
+
+// Medical Records System Pages
+import MedicalRecordsOverview from '@/pages/MedicalRecords/MedicalRecordsOverview';
+import MedicalRecordsSearch from '@/pages/MedicalRecords/MedicalRecordsSearch';
+
+// Placeholder components - will be created
+const CreateMedicalRecord = () => <div className="p-6"><h1 className="text-2xl font-bold">Create Medical Record</h1><p>This page will allow doctors to create comprehensive medical records with ICD-10 diagnosis and CPOE orders.</p></div>;
+const SearchPatientRecords = MedicalRecordsSearch;
+const ManageMedicalRecords = () => <div className="p-6"><h1 className="text-2xl font-bold">Manage Medical Records</h1><p>Administrative interface for managing all medical records.</p></div>;
+const CPOEOrders = () => <div className="p-6"><h1 className="text-2xl font-bold">CPOE Orders</h1><p>Computerized Provider Order Entry system for medications and treatments.</p></div>;
+const PrescriptionsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Prescriptions</h1><p>View and manage patient prescriptions.</p></div>;
+const ICD10DiagnosisPage = () => <div className="p-6"><h1 className="text-2xl font-bold">ICD-10 Diagnosis</h1><p>International Classification of Diseases diagnostic coding system.</p></div>;
+const MyMedicalRecords = () => <div className="p-6"><h1 className="text-2xl font-bold">My Medical Records</h1><p>Patient view of their own medical records and history.</p></div>;
+const MedicalReports = () => <div className="p-6"><h1 className="text-2xl font-bold">Medical Reports</h1><p>Generate comprehensive medical reports and analytics.</p></div>;
 import LabResultEntry from '@/pages/Lab/LabResultEntry';
 import LabQueue from '@/components/Lab/LabQueue';
 
@@ -247,6 +261,106 @@ const AppContent = () => {
             <Layout>
               <MedicalRecords />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Medical Records System - Comprehensive Routes */}
+      <Route
+        path="/medical-records/overview"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist', 'Lab Technician', 'BillingStaff', 'LabSupervisor', 'Pharmacist']}>
+            <DashboardLayout>
+              <MedicalRecordsOverview />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/create"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout>
+              <CreateMedicalRecord />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/search"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Admin', 'Lab Technician', 'LabSupervisor']}>
+            <DashboardLayout>
+              <SearchPatientRecords />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/manage"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Admin']}>
+            <DashboardLayout>
+              <ManageMedicalRecords />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/cpoe"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout>
+              <CPOEOrders />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/prescriptions"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Patient', 'Pharmacist']}>
+            <DashboardLayout>
+              <PrescriptionsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/diagnosis"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout>
+              <ICD10DiagnosisPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/my-records"
+        element={
+          <ProtectedRoute allowedRoles={['Patient']}>
+            <DashboardLayout>
+              <MyMedicalRecords />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/reports"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <DashboardLayout>
+              <MedicalReports />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />

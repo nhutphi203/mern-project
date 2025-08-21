@@ -96,36 +96,15 @@ export const useAuth = () => {
     };
 };
 
-// 🔧 TEMP FIX: Disable useCurrentUser to stop infinite loops during development
 export const useCurrentUser = (options: { enabled?: boolean } = {}) => {
-    // Temporarily return mock data to stop infinite API calls
     const { enabled = true } = options;
 
-    // If disabled, return mock disabled state
-    if (!enabled) {
-        return {
-            data: null,
-            isLoading: false,
-            isError: false,
-            error: null,
-            refetch: () => Promise.resolve(),
-        };
-    }
-
-    // Return mock authenticated user for development
-    return {
-        data: {
-            user: {
-                _id: 'mock-user-id',
-                firstName: 'Dev',
-                lastName: 'User',
-                email: 'dev@test.com',
-                role: 'Admin',
-            }
-        },
-        isLoading: false,
-        isError: false,
-        error: null,
-        refetch: () => Promise.resolve(),
-    };
+    return useQuery<UserDetailsResponse, ApiError>({
+        queryKey: ['currentUser'],
+        queryFn: authApi.getUserDetails,
+        enabled,
+        retry: false,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
+    });
 };

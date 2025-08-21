@@ -110,4 +110,4 @@ medicalRecordSchema.pre('findOneAndUpdate', async function (next) {
 });
 
 
-export const MedicalRecord = mongoose.model("MedicalRecord", medicalRecordSchema);
+export const MedicalRecord = mongoose.model("LegacyMedicalRecord", medicalRecordSchema);
