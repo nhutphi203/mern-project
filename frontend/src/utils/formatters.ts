@@ -37,3 +37,17 @@ export const formatNIC = (nic: string): string => {
     }
     return nic;
 };
+
+// Currency formatter for USD
+export const formatCurrency = (amount: number | string): string => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '$0.00';
+    return `$${numAmount.toFixed(2)}`;
+};
+
+// Format large numbers with commas (for USD)
+export const formatAmount = (amount: number | string): string => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '$0.00';
+    return `$${numAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};

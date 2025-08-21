@@ -47,7 +47,7 @@ const patientInfoLinks = [
         icon: <Banknote />,
         description: "Transparent pricing for all services.",
         guideTitle: "Understanding Our Service Pricing",
-        guideContent: `We are committed to price transparency. While the final cost may vary based on your specific needs and insurance plan, we provide estimates for common services.\n\nA standard consultation fee typically ranges from $50 to $150.\n\nFor a detailed price list or a personalized estimate, please contact our billing department at billing@mediflow.com or call (123) 456-7891. Our team is happy to assist you with any financial questions.`
+        guideContent: `We are committed to price transparency. While the final cost may vary based on your specific needs and insurance plan, we provide estimates for common services.\n\nA standard consultation fee typically ranges from $6 to $15.\n\nFor a detailed price list or a personalized estimate, please contact our billing department at billing@mediflow.com or call (123) 456-7891. Our team is happy to assist you with any financial questions.`
     },
     {
         title: "Insurance Information",
@@ -418,7 +418,7 @@ const DashboardPublic = () => {
                                                     <p>Our services are transparently priced. Example:</p>
                                                     <ul className="list-disc pl-5 mt-2">
                                                         <li>Standard consultation: $50–$150</li>
-                                                        <li>Lab tests: $20–$200 depending on test</li>
+                                                        <li>Lab tests: $8–$45 depending on test</li>
                                                     </ul>
                                                     <p className="mt-2">For a detailed quote, contact billing@mediflow.com</p>
                                                 </div>

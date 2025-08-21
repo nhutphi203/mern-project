@@ -9,6 +9,7 @@ import { getNavigationItems, NavigationItem } from '@/utils/navigation';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { labService } from '@/api/lab.service';
+import { billingService } from '@/api/billing.service';
 
 interface SidebarProps {
     className?: string;
@@ -25,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     // Get badges for dynamic counts
     const canViewLabQueue = ['Lab Technician', 'Admin'].includes(userRole);
     const canViewInvoices = ['Admin', 'Insurance Staff', 'Receptionist'].includes(userRole);
-    
+
     // Sử dụng React Query trực tiếp để tránh vòng lặp cập nhật
     const { data: labQueueData } = useQuery({
         queryKey: ['labQueue', 'count'],
@@ -42,14 +43,19 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         enabled: canViewLabQueue,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
-    
+
     // Tương tự với invoices
     const { data: invoicesData } = useQuery({
         queryKey: ['invoices', 'count'],
         queryFn: async () => {
             if (!canViewInvoices) return { count: 0 };
-            // Tương tự như labQueueData nhưng cho invoices
-            return { count: 0 }; // Placeholder, thay bằng API call thực tế
+            try {
+                const response = await billingService.getAllInvoices();
+                return { count: response.count || 0 };
+            } catch (error) {
+                console.error("Error fetching invoices count:", error);
+                return { count: 0 };
+            }
         },
         enabled: canViewInvoices,
         staleTime: 5 * 60 * 1000, // 5 minutes

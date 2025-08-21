@@ -12,22 +12,18 @@ encounterRouter.get(
     encounterController.getDoctorQueue
 );
 
-// Bất kỳ ai đăng nhập cũng có thể xem chi tiết một lượt khám (nếu cần)
+// ✅ Route này phải ĐẶT TRƯỚC route /:id để tránh conflict
+encounterRouter.get('/',
+    isAuthenticated,
+    isDoctorOrAdminAuthenticated,
+    getRecentEncounters
+);
+
+// ✅ Route để xem chi tiết encounter
 encounterRouter.get(
     '/:id',
     isAuthenticated,
     encounterController.getEncounterDetails
 );
 
-encounterRouter.get('/',
-    isAuthenticated,
-    isDoctorOrAdminAuthenticated, // SỬ DỤNG MIDDLEWARE MỚI
-    getRecentEncounters
-);
-
-encounterRouter.get('/:id',
-    isAuthenticated,
-    isAdminAuthenticated, isDoctorAuthenticated,
-    encounterController.getEncounterDetails
-);
 export default encounterRouter;

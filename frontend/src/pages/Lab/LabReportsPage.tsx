@@ -59,7 +59,8 @@ const LabReportsPage: React.FC<LabReportsPageProps> = ({
                 String(result.patientId).toLowerCase().includes(filters.patientId.toLowerCase());
 
             const matchesCategory = !filters.category ||
-                result.testId.category.toLowerCase().includes(filters.category.toLowerCase());
+                (result.testId && result.testId.category &&
+                    result.testId.category.toLowerCase().includes(filters.category.toLowerCase()));
 
             const matchesStatus = !filters.status || result.status === filters.status;
 
@@ -101,7 +102,9 @@ const LabReportsPage: React.FC<LabReportsPageProps> = ({
 
         // Category distribution
         const categoryDistribution = filteredResults.reduce((acc, result) => {
-            acc[result.testId.category] = (acc[result.testId.category] || 0) + 1;
+            if (result.testId && result.testId.category) {
+                acc[result.testId.category] = (acc[result.testId.category] || 0) + 1;
+            }
             return acc;
         }, {} as Record<string, number>);
 
@@ -150,8 +153,8 @@ const LabReportsPage: React.FC<LabReportsPageProps> = ({
         const csvData = filteredResults.map(result => [
             result.orderId,
             result.patientId,
-            result.testId.testName,
-            result.testId.category,
+            result.testId ? result.testId.testName : 'Unknown Test',
+            result.testId ? result.testId.category : 'Unknown Category',
             result.result.value,
             result.result.unit || '',
             result.result.flag,

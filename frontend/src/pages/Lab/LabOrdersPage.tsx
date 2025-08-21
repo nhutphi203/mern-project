@@ -9,6 +9,9 @@ import { Loader2, AlertCircle } from 'lucide-react';
 
 const LabOrdersPage: React.FC = () => {
     const { data: currentUser } = useCurrentUser();
+    const userId = currentUser?.user?._id;
+    const userRole = currentUser?.user?.role;
+
     const [encounterId, setEncounterId] = useState('');
     const [patientId, setPatientId] = useState('');
     const [patientName, setPatientName] = useState('');
@@ -28,14 +31,14 @@ const LabOrdersPage: React.FC = () => {
     // Fetch recent encounters on component mount
     useEffect(() => {
         const fetchEncounters = async () => {
-            if (!currentUser?.user) return;
+            if (!userId) return;
 
             setLoading(true);
             setError(null);
 
             try {
                 const response = await encountersApi.getRecentEncounters(
-                    currentUser.user.role === 'Doctor' ? currentUser.user._id : undefined
+                    userRole === 'Doctor' ? userId : undefined
                 );
                 setEncounters(response.data?.encounters || []);
             } catch (err) {
@@ -47,7 +50,7 @@ const LabOrdersPage: React.FC = () => {
         };
 
         fetchEncounters();
-    }, [currentUser]);
+    }, [userId, userRole]);
 
     const handleSelectEncounter = (encounter: Encounter) => {
         setEncounterId(encounter._id);

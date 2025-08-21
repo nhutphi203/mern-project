@@ -139,60 +139,97 @@ export const labController = {
                 }
             },
             {
-                $unwind: '$tests'
-            },
-            {
-                $lookup: {
-                    from: 'labtests',
-                    localField: 'tests.testId',
-                    foreignField: '_id',
-                    as: 'testDetails'
-                }
-            },
-            {
-                $unwind: '$testDetails'
-            }
-        ];
-
-        if (category) {
-            pipeline.push({
-                $match: { 'testDetails.category': category }
-            });
-        }
-
-        pipeline.push(
-            {
-                $group: {
-                    _id: '$_id',
-                    orderId: { $first: '$orderId' },
-                    // FIX: Use patientId and doctorId to match frontend type definition
-                    patientId: { $first: { $arrayElemAt: ['$patient', 0] } },
-                    doctorId: { $first: { $arrayElemAt: ['$doctor', 0] } },
-                    orderedAt: { $first: '$orderedAt' },
-                    status: { $first: '$status' },
-                    clinicalInfo: { $first: '$clinicalInfo' },
-                    totalAmount: { $first: '$totalAmount' }, // FIX: Include totalAmount
+                $addFields: {
                     tests: {
-                        $push: {
-                            _id: '$tests._id',
-                            testId: '$tests.testId',
-                            testName: '$testDetails.testName',
-                            category: '$testDetails.category',
-                            priority: '$tests.priority',
-                            status: '$tests.status',
-                            specimen: '$testDetails.specimen',
-                            turnaroundTime: '$testDetails.turnaroundTime'
+                        $map: {
+                            input: '$tests',
+                            as: 'test',
+                            in: {
+                                _id: '$$test._id',
+                                testId: '$$test.testId',
+                                priority: '$$test.priority',
+                                status: '$$test.status',
+                                instructions: '$$test.instructions'
+                            }
                         }
                     }
                 }
             },
             {
-                $sort: {
-                    'tests.priority': 1, // STAT first, then Urgent, then Routine
-                    orderedAt: 1
+                $lookup: {
+                    from: 'labtests',
+                    let: { testIds: '$tests.testId' },
+                    pipeline: [
+                        { $match: { $expr: { $in: ['$_id', '$$testIds'] } } },
+                        { $project: { testName: 1, category: 1, specimen: 1, turnaroundTime: 1 } }
+                    ],
+                    as: 'testDetails'
+                }
+            },
+            {
+                $addFields: {
+                    tests: {
+                        $map: {
+                            input: '$tests',
+                            as: 'test',
+                            in: {
+                                $mergeObjects: [
+                                    '$$test',
+                                    {
+                                        $let: {
+                                            vars: {
+                                                testDetail: {
+                                                    $arrayElemAt: [
+                                                        {
+                                                            $filter: {
+                                                                input: '$testDetails',
+                                                                cond: { $eq: ['$$this._id', '$$test.testId'] }
+                                                            }
+                                                        },
+                                                        0
+                                                    ]
+                                                }
+                                            },
+                                            in: {
+                                                testName: { $ifNull: ['$$testDetail.testName', 'Unknown Test'] },
+                                                category: { $ifNull: ['$$testDetail.category', 'Unknown'] },
+                                                specimen: { $ifNull: ['$$testDetail.specimen', 'Unknown'] },
+                                                turnaroundTime: { $ifNull: ['$$testDetail.turnaroundTime', 'Unknown'] }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    orderNumber: 1,
+                    patientId: { $arrayElemAt: ['$patient', 0] },
+                    doctorId: { $arrayElemAt: ['$doctor', 0] },
+                    orderedAt: 1,
+                    status: 1,
+                    clinicalInfo: 1,
+                    totalAmount: 1,
+                    tests: 1
                 }
             }
-        );
+        ];
+
+        if (category) {
+            pipeline.push({
+                $match: { 'tests.category': category }
+            });
+        }
+
+        pipeline.push({
+            $sort: {
+                'tests.priority': 1, // STAT first, then Urgent, then Routine
+                orderedAt: 1
+            }
+        });
 
         const orders = await LabOrder.aggregate(pipeline);
 

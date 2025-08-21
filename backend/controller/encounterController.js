@@ -101,6 +101,13 @@ export const getRecentEncounters = catchAsyncErrors(async (req, res, next) => {
     const { doctorId: queryDoctorId, limit = 10 } = req.query; // Đổi tên để tránh nhầm lẫn
     const user = req.user;
 
+    console.log('🔍 [getRecentEncounters] Request details:', {
+        queryDoctorId,
+        limit,
+        userRole: user.role,
+        userId: user._id
+    });
+
     let filter = {}; // Bỏ filter status mặc định để linh hoạt hơn
 
     if (user.role === 'Doctor') {
@@ -108,6 +115,7 @@ export const getRecentEncounters = catchAsyncErrors(async (req, res, next) => {
         const doctorAppointments = await Appointment.find({ doctorId: user._id });
         const appointmentIds = doctorAppointments.map(apt => apt._id);
         filter.appointmentId = { $in: appointmentIds };
+        console.log('🔍 [Doctor] Found appointments:', appointmentIds.length);
 
     } else if (user.role === 'Admin') {
         // NẾU LÀ ADMIN, cho phép lọc theo doctorId từ query
@@ -115,10 +123,15 @@ export const getRecentEncounters = catchAsyncErrors(async (req, res, next) => {
             const doctorAppointments = await Appointment.find({ doctorId: queryDoctorId });
             const appointmentIds = doctorAppointments.map(apt => apt._id);
             filter.appointmentId = { $in: appointmentIds };
+            console.log('🔍 [Admin with doctorId] Found appointments:', appointmentIds.length);
+        } else {
+            console.log('🔍 [Admin without doctorId] No filter applied - getting all encounters');
         }
         // Nếu admin không truyền doctorId, filter sẽ rỗng và lấy tất cả encounters
 
     }
+
+    console.log('🔍 [getRecentEncounters] Final filter:', filter);
 
     const encounters = await Encounter.find(filter)
         .populate('patientId', 'firstName lastName')
@@ -129,6 +142,8 @@ export const getRecentEncounters = catchAsyncErrors(async (req, res, next) => {
         })
         .sort({ checkInTime: -1 })
         .limit(parseInt(limit));
+
+    console.log('🔍 [getRecentEncounters] Found encounters:', encounters.length);
 
     res.status(200).json({
         success: true,

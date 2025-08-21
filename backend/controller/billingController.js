@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'; // FIX: Add missing mongoose import
 import { catchAsyncErrors } from '../middlewares/catchAsyncErrors.js';
 import ErrorHandler from '../middlewares/errorMiddleware.js';
 import { Invoice } from '../models/billing/invoice.model.js';
@@ -5,6 +6,7 @@ import { PatientInsurance } from '../models/billing/patientInsurance.model.js';
 import { InsuranceProvider } from '../models/billing/insuranceProvider.model.js';
 import { LabOrder } from '../models/labOrder.model.js';
 import { Prescription } from '../models/prescriptionSchema.js';
+import { ServiceCatalog } from '../models/serviceCatalog.model.js'; // ADD: Service pricing lookup
 
 export const billingController = {
     // Create invoice from encounter
@@ -34,16 +36,24 @@ export const billingController = {
 
         // Add consultation fee
         if (consultationFee) {
+            // FIX: Lookup consultation price from service catalog instead of hardcoding
+            const consultationService = await ServiceCatalog.findOne({
+                department: 'Consultation',
+                isActive: true
+            });
+
+            const unitPrice = consultationService ? consultationService.price : consultationFee;
+
             items.push({
                 type: 'Consultation',
-                description: 'Medical Consultation',
-                serviceCode: '99213', // Example CPT code
+                description: consultationService ? consultationService.name : 'Medical Consultation',
+                serviceCode: consultationService ? consultationService.serviceId : '99213',
                 quantity: 1,
-                unitPrice: consultationFee,
-                totalPrice: consultationFee,
-                netAmount: consultationFee
+                unitPrice: unitPrice,
+                totalPrice: unitPrice,
+                netAmount: unitPrice
             });
-            subtotal += consultationFee;
+            subtotal += unitPrice;
         }
 
         // Add lab orders
@@ -71,19 +81,26 @@ export const billingController = {
             const prescription = await Prescription.findById(prescriptionId);
             if (prescription) {
                 for (const medication of prescription.medications) {
-                    // This would require a medication price lookup system
-                    const estimatedCost = 25; // Placeholder
+                    // FIX: Lookup medication price from service catalog
+                    const medicationService = await ServiceCatalog.findOne({
+                        department: 'Pharmacy',
+                        name: { $regex: new RegExp(medication.name, 'i') },
+                        isActive: true
+                    });
+
+                    const unitPrice = medicationService ? medicationService.price : 25; // Fallback price
+
                     const item = {
                         type: 'Pharmacy',
                         description: `${medication.name} - ${medication.dosage}`,
-                        serviceCode: 'PHARM001',
-                        quantity: 1,
-                        unitPrice: estimatedCost,
-                        totalPrice: estimatedCost,
-                        netAmount: estimatedCost
+                        serviceCode: medicationService ? medicationService.serviceId : 'PHARM001',
+                        quantity: parseInt(medication.quantity) || 1,
+                        unitPrice: unitPrice,
+                        totalPrice: (parseInt(medication.quantity) || 1) * unitPrice,
+                        netAmount: (parseInt(medication.quantity) || 1) * unitPrice
                     };
                     items.push(item);
-                    subtotal += estimatedCost;
+                    subtotal += item.totalPrice;
                 }
             }
         }
@@ -440,6 +457,11 @@ export const billingController = {
     // Get patient billing history
     getPatientBillingHistory: catchAsyncErrors(async (req, res, next) => {
         const { patientId } = req.params;
+
+        // FIX: Security - Patients can only see their own billing history
+        if (req.user.role === 'Patient' && req.user._id.toString() !== patientId) {
+            return next(new ErrorHandler('Access denied. You can only view your own billing history.', 403));
+        }
 
         const billingHistory = await Invoice.find({ patientId })
             .populate('appointmentId', 'appointment_date department')
