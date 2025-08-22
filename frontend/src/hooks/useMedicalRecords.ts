@@ -182,6 +182,41 @@ export const useMyMedicalRecords = (params?: {
     };
 };
 
+// Hook for medical records summary
+export const useMedicalRecordsSummary = () => {
+    const [data, setData] = useState<MedicalRecordSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchSummary = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await MedicalRecordsAPI.getRecordsSummary();
+            if (response.success) {
+                setData(response.data);
+            } else {
+                setError('Failed to fetch medical records summary');
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Error fetching medical records summary');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSummary();
+    }, [fetchSummary]);
+
+    return {
+        data,
+        loading,
+        error,
+        refetch: fetchSummary
+    };
+};
+
 // Hook for medical records statistics
 export const useMedicalRecordsStats = () => {
     const [data, setData] = useState<MedicalRecordsStats | null>(null);

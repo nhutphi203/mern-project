@@ -387,7 +387,14 @@ const enhancedMedicalRecordSchema = new mongoose.Schema({
             default: Date.now
         },
         ipAddress: String
-    }]
+    }],
+
+    // Active status for soft delete
+    isActive: {
+        type: Boolean,
+        default: true,
+        index: true
+    }
 
 }, {
     timestamps: true,

@@ -121,9 +121,11 @@ app.use(fileUpload({
 dbConnection();
 
 // Sử dụng các router
-// TEMPORARILY DISABLED: app.use("/api/v1/medical-records", enhancedMedicalRecordRouter);
-app.use("/api/v1/medical-records", fixedMedicalRecordsRouter);
-// TEMPORARILY DISABLED: app.use("/api/v1/legacy-medical-records", medicalRecordRouter);
+// MEDICAL RECORDS - Use both for backward compatibility and new features
+app.use("/api/v1/medical-records", fixedMedicalRecordsRouter); // Main working router
+app.use("/api/v1/medical-records", enhancedMedicalRecordRouter); // Enhanced features
+// Legacy support
+app.use("/api/v1/legacy-medical-records", medicalRecordRouter);
 // In app.js
 // ... các router khác
 

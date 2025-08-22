@@ -1,8 +1,15 @@
 import { apiRequest } from './apiClient';
 
-// Types for Medical Records
+// ✅ ISSUE 2 FIX: Enhanced TypeScript interfaces with appointmentId support
 export interface MedicalRecord {
     _id: string;
+    appointmentId?: string; // ✅ FIXED: Add appointmentId for backend compatibility
+    encounterId?: {         // Keep encounterId for backward compatibility
+        _id: string;
+        type: string;
+        status: string;
+        scheduledDateTime: string;
+    };
     patientId: {
         _id: string;
         firstName: string;
@@ -24,12 +31,6 @@ export interface MedicalRecord {
         lastName: string;
         specialization?: string;
         licenseNumber?: string;
-    };
-    encounterId?: {
-        _id: string;
-        type: string;
-        status: string;
-        scheduledDateTime: string;
     };
 
     // Medical Record Details
@@ -173,7 +174,8 @@ export interface PaginationInfo {
 
 export interface CreateMedicalRecordRequest {
     patientId: string;
-    encounterId?: string;
+    appointmentId?: string; // ✅ FIXED: Add appointmentId support
+    encounterId?: string;   // Keep for backward compatibility
     chiefComplaint: string;
     historyOfPresentIllness: string;
     pastMedicalHistory?: string[];
@@ -409,6 +411,19 @@ export class MedicalRecordsAPI {
         });
     }
 
+    // Get medical records summary for dashboard
+    static async getRecordsSummary(): Promise<{
+        success: boolean;
+        data: MedicalRecordSummary[];
+        stats: MedicalRecordsStats;
+    }> {
+        return apiRequest<{
+            success: boolean;
+            data: MedicalRecordSummary[];
+            stats: MedicalRecordsStats;
+        }>(`${this.baseUrl}/summary`);
+    }
+
     // Get medical record statistics
     static async getStatistics(): Promise<{
         success: boolean;
@@ -454,6 +469,66 @@ export class MedicalRecordsAPI {
         });
     }
 }
+
+// ✅ ISSUE 2 FIX: Backward compatibility types and helper function
+interface LegacyMedicalRecord {
+    _id?: string;
+    appointmentId?: string;
+    encounterId?: { _id: string; type: string; status: string; scheduledDateTime: string; };
+    clinicalAssessment?: {
+        chiefComplaint?: string;
+        clinicalImpression?: string;
+    };
+    [key: string]: unknown;
+}
+
+export const mapLegacyMedicalRecord = (record: LegacyMedicalRecord): MedicalRecord => {
+    return {
+        _id: record._id || '',
+        appointmentId: record.appointmentId || record.encounterId?._id,
+        encounterId: record.encounterId,
+        patientId: (record.patientId as MedicalRecord['patientId']) || {
+            _id: '',
+            firstName: '',
+            lastName: '',
+            email: ''
+        },
+        doctorId: (record.doctorId as MedicalRecord['doctorId']) || {
+            _id: '',
+            firstName: '',
+            lastName: ''
+        },
+        // Ensure all required fields have fallbacks
+        diagnosis: (record.diagnosis as MedicalRecord['diagnosis']) || {
+            primary: { code: '', description: '', icd10Code: '' },
+            secondary: []
+        },
+        chiefComplaint: record.chiefComplaint as string || record.clinicalAssessment?.chiefComplaint || '',
+        historyOfPresentIllness: record.historyOfPresentIllness as string || '',
+        pastMedicalHistory: record.pastMedicalHistory as string[] || [],
+        medications: record.medications as string[] || [],
+        allergies: record.allergies as string[] || [],
+        socialHistory: record.socialHistory as MedicalRecord['socialHistory'] || {},
+        familyHistory: record.familyHistory as string[] || [],
+        assessment: record.assessment as string || record.clinicalAssessment?.clinicalImpression || '',
+        vitalSigns: record.vitalSigns as MedicalRecord['vitalSigns'] || {},
+        physicalExamination: record.physicalExamination as MedicalRecord['physicalExamination'] || {},
+        plan: record.plan as MedicalRecord['plan'] || {},
+        labOrders: record.labOrders as MedicalRecord['labOrders'] || [],
+        progressNotes: record.progressNotes as MedicalRecord['progressNotes'] || [],
+        status: record.status as MedicalRecord['status'] || 'Active',
+        priority: record.priority as MedicalRecord['priority'] || 'Routine',
+        isConfidential: Boolean(record.isConfidential),
+        createdAt: record.createdAt as string || new Date().toISOString(),
+        updatedAt: record.updatedAt as string || new Date().toISOString(),
+        version: Number(record.version) || 1
+    };
+};
+
+// ✅ Data transformation helper for API responses
+export const transformApiResponse = (apiData: LegacyMedicalRecord[]): MedicalRecord[] => {
+    return apiData.map(mapLegacyMedicalRecord);
+};
 
 // Default export
 export default MedicalRecordsAPI;

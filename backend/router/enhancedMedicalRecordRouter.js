@@ -381,6 +381,51 @@ router.get('/enhanced/:id', isAuthenticated, async (req, res, next) => {
     }
 });
 
+// Get medical record by appointment ID (SUPPORT APPOINTMENTID)
+router.get('/enhanced/appointment/:appointmentId', isAuthenticated, async (req, res, next) => {
+    try {
+        const { appointmentId } = req.params;
+        const user = req.user;
+
+        console.log('🔍 Finding medical record by appointmentId:', appointmentId);
+
+        const { EnhancedMedicalRecord } = await import('../models/enhancedMedicalRecord.model.js');
+
+        let filter = { appointmentId, isActive: true };
+
+        // Role-based access control
+        if (user.role === 'Patient') {
+            filter.patientId = user._id;
+        } else if (user.role === 'Doctor') {
+            filter.doctorId = user._id;
+        }
+
+        const record = await EnhancedMedicalRecord.findOne(filter)
+            .populate('patientId', 'firstName lastName email phone dateOfBirth gender address')
+            .populate('doctorId', 'firstName lastName specialization licenseNumber')
+            .populate('appointmentId', 'appointment_date status department')
+            .populate('encounterId', 'type status scheduledDateTime');
+
+        if (!record) {
+            console.log('❌ No medical record found for appointment:', appointmentId);
+            return res.status(404).json({
+                success: false,
+                message: 'Medical record not found for this appointment'
+            });
+        }
+
+        console.log('✅ Medical record found:', record._id);
+
+        res.status(200).json({
+            success: true,
+            data: record
+        });
+    } catch (error) {
+        console.error('❌ Error finding medical record by appointment:', error);
+        next(error);
+    }
+});
+
 // Get patient's medical records (for patient role)
 router.get('/my-records', isAuthenticated, requireRole(['Patient']), async (req, res, next) => {
     try {
@@ -428,8 +473,19 @@ router.get('/my-records', isAuthenticated, requireRole(['Patient']), async (req,
     }
 });
 
-// Create new medical record (Doctor only)
-router.post('/enhanced', isAuthenticated, requireRole(['Doctor']), enhancedMedicalRecordController.createMedicalRecord);
+// Create new medical record (Doctor only) - FIX APPOINTMENTID SUPPORT
+router.post('/enhanced', isAuthenticated, requireRole(['Doctor']), async (req, res, next) => {
+    try {
+        console.log('📝 Creating new enhanced medical record...');
+        console.log('Request body:', req.body);
+
+        // Call the controller method
+        await enhancedMedicalRecordController.createMedicalRecord(req, res, next);
+    } catch (error) {
+        console.error('❌ Error creating medical record:', error);
+        next(error);
+    }
+});
 
 // Update medical record (Doctor only)
 router.put('/enhanced/:id', isAuthenticated, requireRole(['Doctor']), async (req, res, next) => {

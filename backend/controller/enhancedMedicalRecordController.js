@@ -10,6 +10,7 @@ export const enhancedMedicalRecordController = {
     createMedicalRecord: catchAsyncErrors(async (req, res, next) => {
         const {
             patientId,
+            appointmentId,
             encounterId,
             chiefComplaint,
             historyOfPresentIllness,
@@ -27,33 +28,46 @@ export const enhancedMedicalRecordController = {
             followUpInstructions
         } = req.body;
 
-        const primaryProviderId = req.user._id;
+        const doctorId = req.user._id;
 
+        // Build clinical assessment structure
+        const clinicalAssessmentData = {
+            chiefComplaint: chiefComplaint || clinicalAssessment?.chiefComplaint,
+            historyOfPresentIllness: historyOfPresentIllness || clinicalAssessment?.historyOfPresentIllness,
+            reviewOfSystems: reviewOfSystems || clinicalAssessment?.reviewOfSystems || {},
+            physicalExam: physicalExamination || clinicalAssessment?.physicalExam || {},
+            clinicalImpression: clinicalAssessment?.clinicalImpression || '',
+            differentialDiagnosis: clinicalAssessment?.differentialDiagnosis || [],
+            assessedBy: doctorId
+        };
+
+        // ✅ CRITICAL FIX: Proper appointmentId mapping with backward compatibility
         const medicalRecord = await EnhancedMedicalRecord.create({
+            appointmentId, // FIXED: Use appointmentId directly
             patientId,
-            encounterId,
-            primaryProviderId,
-            chiefComplaint,
-            historyOfPresentIllness,
-            pastMedicalHistory,
-            medications,
-            allergies,
-            socialHistory,
-            familyHistory,
-            reviewOfSystems,
-            physicalExamination,
-            vitalSigns,
-            diagnosticResults,
-            clinicalAssessment,
-            carePlan,
-            followUpInstructions,
-            version: 1,
-            isActive: true
+            doctorId, // Add doctorId for consistency
+            encounterId: encounterId || appointmentId, // Keep encounterId for backward compatibility
+            clinicalAssessment: clinicalAssessmentData,
+            diagnoses: [],
+            treatmentPlans: [],
+            cpoeOrders: [],
+            labResults: [],
+            radiologyResults: [],
+            attachments: [],
+            progressNotes: [],
+            followUpPlan: {
+                followUpInstructions: followUpInstructions || ''
+            },
+            recordStatus: 'Draft',
+            currentVersion: 1
         });
 
+        // ✅ CRITICAL FIX: Enhanced populate with both appointmentId and encounterId support
         await medicalRecord.populate([
-            { path: 'patientId', select: 'firstName lastName dateOfBirth' },
-            { path: 'primaryProviderId', select: 'firstName lastName' }
+            { path: 'patientId', select: 'firstName lastName dateOfBirth email phone gender address' },
+            { path: 'doctorId', select: 'firstName lastName specialization licenseNumber' },
+            { path: 'appointmentId', select: 'appointment_date status department' },
+            { path: 'encounterId', select: 'type status scheduledDateTime' }
         ]);
 
         res.status(201).json({
@@ -63,20 +77,27 @@ export const enhancedMedicalRecordController = {
         });
     }),
 
-    // Get medical record by encounter
+    // Get medical record by encounter (support both encounterId and appointmentId)
     getMedicalRecordByEncounter: catchAsyncErrors(async (req, res, next) => {
-        const { encounterId } = req.params;
+        const { encounterId, appointmentId } = req.params;
+        const recordId = encounterId || appointmentId;
 
-        const medicalRecord = await EnhancedMedicalRecord.findOne({
-            encounterId,
-            isActive: true
-        })
-            .populate('patientId', 'firstName lastName dateOfBirth')
-            .populate('primaryProviderId', 'firstName lastName')
+        let filter = { isActive: true };
+        if (encounterId) {
+            filter.encounterId = recordId;
+        } else if (appointmentId) {
+            filter.appointmentId = recordId;
+        }
+
+        const medicalRecord = await EnhancedMedicalRecord.findOne(filter)
+            .populate('patientId', 'firstName lastName dateOfBirth email phone gender address')
+            .populate('doctorId', 'firstName lastName specialization licenseNumber')
+            .populate('appointmentId', 'appointment_date status department')
+            .populate('encounterId', 'type status scheduledDateTime')
             .populate('diagnoses.icd10Code', 'code description category')
-            .populate('treatmentPlan.cpoeOrderId')
-            .populate('auditTrail.userId', 'firstName lastName')
-            .sort({ version: -1 });
+            .populate('treatmentPlans.cpoeOrderId')
+            .populate('accessLog.userId', 'firstName lastName')
+            .sort({ currentVersion: -1 });
 
         if (!medicalRecord) {
             return next(new ErrorHandler('Medical record not found', 404));
@@ -99,8 +120,9 @@ export const enhancedMedicalRecordController = {
             patientId,
             isActive: true
         })
-            .populate('primaryProviderId', 'firstName lastName')
-            .populate('encounterId', 'checkInTime status')
+            .populate('doctorId', 'firstName lastName specialization licenseNumber')
+            .populate('appointmentId', 'appointment_date status department')
+            .populate('encounterId', 'checkInTime status type')
             .populate('diagnoses.icd10Code', 'code description')
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))

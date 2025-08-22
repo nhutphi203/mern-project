@@ -11,7 +11,19 @@
     "seed:medical": "node scripts/seeders/masterMedicalRecordsSeeder.js",
     "seed:icd10": "node -e \"import('./scripts/seeders/icd10Seeder.js').then(m => m.seedICD10Codes())\"",
     "seed:cpoe": "node -e \"import('./scripts/seeders/cpoeSeeder.js').then(m => m.seedCPOEOrders())\"",
-    "test:medical": "node scripts/testMedicalRecordFunctionality.js"
+    "test:medical": "node scripts/testMedicalRecordFunctionality.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:performance": "jest --testPathPattern=performance",
+    "test:security": "jest --testPathPattern=security",
+    "test:integrity": "jest --testPathPattern=integrity",
+    "test:all": "jest --runInBand",
+    "test:medical-records": "jest --testPathPattern=medical",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "seed:test-data": "node -e \"require('./test/database/seeders/medicalRecordSeeder').seedTestData()\"",
+    "cleanup:test-data": "node -e \"require('./test/database/seeders/medicalRecordSeeder').cleanupTestData()\""
   },
   "author": "",
   "license": "ISC",
@@ -43,6 +55,10 @@
     "validator": "^13.12.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "colors": "^1.4.0",
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }

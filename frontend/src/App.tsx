@@ -33,16 +33,16 @@ import LabResultsView from '@/pages/Lab/LabResultsView'; // Keep for backward co
 // Medical Records System Pages
 import MedicalRecordsOverview from '@/pages/MedicalRecords/MedicalRecordsOverview';
 import MedicalRecordsSearch from '@/pages/MedicalRecords/MedicalRecordsSearch';
+import ManageMedicalRecords from '@/pages/MedicalRecords/ManageMedicalRecords';
+import MedicalReports from '@/pages/MedicalRecords/MedicalReports';
 
 // Placeholder components - will be created
 const CreateMedicalRecord = () => <div className="p-6"><h1 className="text-2xl font-bold">Create Medical Record</h1><p>This page will allow doctors to create comprehensive medical records with ICD-10 diagnosis and CPOE orders.</p></div>;
 const SearchPatientRecords = MedicalRecordsSearch;
-const ManageMedicalRecords = () => <div className="p-6"><h1 className="text-2xl font-bold">Manage Medical Records</h1><p>Administrative interface for managing all medical records.</p></div>;
 const CPOEOrders = () => <div className="p-6"><h1 className="text-2xl font-bold">CPOE Orders</h1><p>Computerized Provider Order Entry system for medications and treatments.</p></div>;
 const PrescriptionsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Prescriptions</h1><p>View and manage patient prescriptions.</p></div>;
 const ICD10DiagnosisPage = () => <div className="p-6"><h1 className="text-2xl font-bold">ICD-10 Diagnosis</h1><p>International Classification of Diseases diagnostic coding system.</p></div>;
 const MyMedicalRecords = () => <div className="p-6"><h1 className="text-2xl font-bold">My Medical Records</h1><p>Patient view of their own medical records and history.</p></div>;
-const MedicalReports = () => <div className="p-6"><h1 className="text-2xl font-bold">Medical Reports</h1><p>Generate comprehensive medical reports and analytics.</p></div>;
 import LabResultEntry from '@/pages/Lab/LabResultEntry';
 import LabQueue from '@/components/Lab/LabQueue';
 

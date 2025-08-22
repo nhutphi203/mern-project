@@ -298,4 +298,199 @@ router.get('/statistics', isAuthenticated, async (req, res, next) => {
     }
 });
 
+// Medical records summary route for frontend dashboard
+router.get('/summary', isAuthenticated, async (req, res, next) => {
+    try {
+        console.log('🔍 Summary route hit - user:', req.user?.role);
+
+        const user = req.user;
+        let filter = { isActive: true };
+
+        // Role-based filtering
+        if (user.role === 'Patient') {
+            filter.patientId = user._id;
+        } else if (user.role === 'Doctor') {
+            filter.doctorId = user._id;
+        }
+
+        console.log('✅ Importing models...');
+        const { EnhancedMedicalRecord } = await import('../models/enhancedMedicalRecord.model.js');
+        const { User } = await import('../models/userScheme.js');
+        console.log('✅ Models imported successfully');
+
+        // Get recent records
+        const recentRecords = await EnhancedMedicalRecord.find(filter)
+            .populate('patientId', 'firstName lastName')
+            .populate('doctorId', 'firstName lastName')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        console.log(`✅ Found ${recentRecords.length} recent records`);
+
+        // Get statistics
+        const totalRecords = await EnhancedMedicalRecord.countDocuments(filter);
+        const activeCases = await EnhancedMedicalRecord.countDocuments({
+            ...filter,
+            recordStatus: { $in: ['In Progress', 'Draft'] }
+        });
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const resolvedToday = await EnhancedMedicalRecord.countDocuments({
+            ...filter,
+            recordStatus: 'Finalized',
+            updatedAt: { $gte: today }
+        });
+
+        const pendingReview = await EnhancedMedicalRecord.countDocuments({
+            ...filter,
+            recordStatus: 'Completed'
+        });
+
+        const createdToday = await EnhancedMedicalRecord.countDocuments({
+            ...filter,
+            createdAt: { $gte: today }
+        });
+
+        const updatedToday = await EnhancedMedicalRecord.countDocuments({
+            ...filter,
+            updatedAt: { $gte: today },
+            createdAt: { $lt: today }
+        });
+
+        // Transform to match frontend interface
+        const summaryData = recentRecords.map(record => ({
+            _id: record._id,
+            patientName: `${record.patientId?.firstName || ''} ${record.patientId?.lastName || ''}`.trim(),
+            patientId: record.patientId?._id,
+            diagnosis: record.diagnoses?.[0]?.icd10Description || 'No diagnosis recorded',
+            icd10Code: record.diagnoses?.[0]?.icd10Code || '',
+            lastUpdated: record.updatedAt,
+            status: record.recordStatus === 'Finalized' ? 'Resolved' :
+                record.recordStatus === 'In Progress' ? 'Under Treatment' : 'Active',
+            doctor: `${record.doctorId?.firstName || ''} ${record.doctorId?.lastName || ''}`.trim(),
+            priority: record.clinicalAssessment?.severity || 'Medium',
+            chiefComplaint: record.clinicalAssessment?.chiefComplaint || ''
+        }));
+
+        const stats = {
+            totalRecords,
+            activeCases,
+            resolvedToday,
+            pendingReview,
+            recentActivity: {
+                created: createdToday,
+                updated: updatedToday,
+                reviewed: pendingReview
+            }
+        };
+
+        console.log('✅ Summary response prepared successfully');
+
+        res.status(200).json({
+            success: true,
+            data: summaryData,
+            stats
+        });
+    } catch (error) {
+        console.error('❌ Summary route error:', error.message);
+        console.error('Stack:', error.stack);
+        next(error);
+    }
+});
+
+// Patient my-records route 
+router.get('/my-records', isAuthenticated, async (req, res, next) => {
+    try {
+        console.log('🔍 My-records route hit - user:', req.user?.role);
+
+        const user = req.user;
+        const { page = 1, limit = 10, dateFrom, dateTo } = req.query;
+
+        let filter = { isActive: true };
+
+        // For patients, only show their own records
+        if (user.role === 'Patient') {
+            filter.patientId = user._id;
+        } else if (user.role === 'Doctor') {
+            filter.doctorId = user._id;
+        }
+
+        if (dateFrom || dateTo) {
+            filter.createdAt = {};
+            if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+        }
+
+        console.log('✅ Importing models...');
+        const { EnhancedMedicalRecord } = await import('../models/enhancedMedicalRecord.model.js');
+        console.log('✅ Models imported successfully');
+
+        const skip = (page - 1) * limit;
+
+        console.log('🔍 Executing my-records query with filter:', filter);
+        const records = await EnhancedMedicalRecord.find(filter)
+            .populate('doctorId', 'firstName lastName specialization')
+            .populate('patientId', 'firstName lastName')
+            .sort({ createdAt: -1 })
+            .limit(parseInt(limit))
+            .skip(skip);
+
+        console.log(`✅ Found ${records.length} records for my-records`);
+
+        const totalRecords = await EnhancedMedicalRecord.countDocuments(filter);
+        const totalPages = Math.ceil(totalRecords / limit);
+
+        // Transform data to match frontend interface
+        const transformedRecords = records.map(record => ({
+            _id: record._id,
+            patientId: {
+                _id: record.patientId?._id,
+                firstName: record.patientId?.firstName,
+                lastName: record.patientId?.lastName
+            },
+            doctorId: {
+                _id: record.doctorId?._id,
+                firstName: record.doctorId?.firstName,
+                lastName: record.doctorId?.lastName,
+                specialization: record.doctorId?.specialization
+            },
+            chiefComplaint: record.clinicalAssessment?.chiefComplaint || '',
+            assessment: record.clinicalAssessment?.clinicalImpression || '',
+            diagnosis: {
+                primary: record.diagnoses?.[0] ? {
+                    code: record.diagnoses[0].icd10Code,
+                    description: record.diagnoses[0].icd10Description,
+                    icd10Code: record.diagnoses[0].icd10Code
+                } : { code: '', description: '', icd10Code: '' }
+            },
+            status: record.recordStatus === 'Finalized' ? 'Completed' :
+                record.recordStatus === 'In Progress' ? 'Active' : 'Active',
+            priority: record.clinicalAssessment?.severity || 'Routine',
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt
+        }));
+
+        const pagination = {
+            currentPage: parseInt(page),
+            totalPages,
+            totalRecords,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+        };
+
+        console.log('✅ My-records response prepared successfully');
+
+        res.status(200).json({
+            success: true,
+            data: transformedRecords,
+            pagination
+        });
+    } catch (error) {
+        console.error('❌ My-records route error:', error.message);
+        console.error('Stack:', error.stack);
+        next(error);
+    }
+});
+
 export default router;
