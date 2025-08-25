@@ -21,6 +21,7 @@ import BookAppointment from './pages/BookAppointment';
 import PatientProfilePage from './pages/PatientProfile';
 import MedicalRecords from './pages/MedicalRecords';
 import DoctorDashboard from './pages/DoctorDashboard';
+import NurseDashboard from './pages/NurseDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ReceptionDashboard from './pages/ReceptionDashboard';
 
@@ -35,6 +36,8 @@ import MedicalRecordsOverview from '@/pages/MedicalRecords/MedicalRecordsOvervie
 import MedicalRecordsSearch from '@/pages/MedicalRecords/MedicalRecordsSearch';
 import ManageMedicalRecords from '@/pages/MedicalRecords/ManageMedicalRecords';
 import MedicalReports from '@/pages/MedicalRecords/MedicalReports';
+import MedicalRecordDetail from '@/pages/MedicalRecords/MedicalRecordDetail';
+import DiagnosisReportsPage from '@/pages/MedicalRecords/DiagnosisReportsPage';
 
 // Placeholder components - will be created
 const CreateMedicalRecord = () => <div className="p-6"><h1 className="text-2xl font-bold">Create Medical Record</h1><p>This page will allow doctors to create comprehensive medical records with ICD-10 diagnosis and CPOE orders.</p></div>;
@@ -150,7 +153,7 @@ const AppContent = () => {
 
     // If no user and trying to access protected routes, redirect to login
     if (!currentUser?.user && isError && !isPublicRoute) {
-      const protectedRoutes = ['/dashboard', '/admin-dashboard', '/doctor-dashboard', '/reception-dashboard'];
+      const protectedRoutes = ['/dashboard', '/admin-dashboard', '/doctor-dashboard', '/nurse-dashboard', '/reception-dashboard'];
       const isProtectedRoute = protectedRoutes.some(route =>
         location.pathname.startsWith(route)
       );
@@ -169,6 +172,8 @@ const AppContent = () => {
         return '/admin-dashboard';
       case 'Doctor':
         return '/doctor-dashboard';
+      case 'Nurse':
+        return '/nurse-dashboard';
       case 'Receptionist':
         return '/reception-dashboard';
       default:
@@ -237,6 +242,17 @@ const AppContent = () => {
           <ProtectedRoute allowedRoles={['Doctor']}>
             <DashboardLayout>
               <DoctorDashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/nurse-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['Nurse']}>
+            <DashboardLayout>
+              <NurseDashboard />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -349,6 +365,26 @@ const AppContent = () => {
           <ProtectedRoute allowedRoles={['Patient']}>
             <DashboardLayout>
               <MyMedicalRecords />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/:recordId"
+        element={
+          <ProtectedRoute allowedRoles={['Doctor', 'Admin', 'Patient']}>
+            <MedicalRecordDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/medical-records/diagnosis/reports"
+        element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <DashboardLayout>
+              <DiagnosisReportsPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

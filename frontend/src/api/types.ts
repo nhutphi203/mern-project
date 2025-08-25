@@ -9,7 +9,7 @@ export interface User {
     nic: string;
     dob: string;
     gender: 'Male' | 'Female' | 'Other';
-    role: 'Admin' | 'Patient' | 'Doctor' | 'Receptionist' | 'Lab Technician' | 'BillingStaff' | 'LabSupervisor' | 'Pharmacist' | 'Insurance Staff'// Thêm 2 roles mới;
+    role: 'Admin' | 'Patient' | 'Doctor' | 'Nurse' | 'Receptionist' | 'Lab Technician' | 'BillingStaff' | 'LabSupervisor' | 'Pharmacist' | 'Insurance Staff'// Thêm 2 roles mới;
     doctorDepartment?: string;
     specialization?: string; // Thêm field mới
     licenseNumber?: string; // Thêm field mới
@@ -26,7 +26,7 @@ export interface MessageResponse {
 export interface LoginRequest {
     email: string;
     password: string;
-    role: 'Admin' | 'Patient' | 'Doctor';
+    role: 'Admin' | 'Patient' | 'Doctor' | 'Nurse';
 }
 
 export interface RegisterRequest {

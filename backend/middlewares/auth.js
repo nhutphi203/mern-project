@@ -1,20 +1,19 @@
-// backend/middlewares/auth.js - ENHANCED VERSION
+// backend/middlewares/auth.js - PRODUCTION-READY RBAC ENGINE
 import passport from 'passport';
 import ErrorHandler from './errorMiddleware.js';
 import { catchAsyncErrors } from './catchAsyncErrors.js';
+import { ACCESS_MATRIX, ROLES, hasAccess, getEndpointConfig } from '../config/rolesConfig.js';
 
-// 🔧 FIX: Enhanced authentication middleware with better error handling
+// 🔧 CORE: Production-ready authentication middleware
 export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
     console.log('🔐 [isAuthenticated] Processing request:', {
         method: req.method,
         url: req.originalUrl,
         headers: {
-            authorization: req.headers.authorization ? 'Present' : 'Missing',
-            cookie: req.headers.cookie ? 'Present' : 'Missing'
+            authorization: req.headers.authorization ? 'Present' : 'Missing'
         }
     });
     
-    // Check if this is an API request
     const isApiRequest = req.originalUrl.startsWith('/api/');
 
     passport.authenticate('jwt', { session: false }, (err, user, info) => {
@@ -39,7 +38,6 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
 
         if (!user) {
             console.warn('⚠️ [isAuthenticated] No user found - authentication failed');
-            // More specific error message based on info
             const message = info?.message === 'No auth token'
                 ? 'Authentication token is required. Please login first.'
                 : 'Invalid or expired authentication token. Please login again.';
@@ -54,7 +52,6 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
             return next(new ErrorHandler(message, 401));
         }
 
-        // 🔧 CRITICAL FIX: Ensure user object has required fields
         if (!user._id) {
             console.error('❌ [isAuthenticated] User object missing _id field:', user);
             
@@ -78,67 +75,63 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
         next();
     })(req, res, next);
 });
-// Patient-specific authentication
-export const isPatientAuthenticated = catchAsyncErrors(async (req, res, next) => {
-    console.log('🏥 [isPatientAuthenticated] Checking patient access');
+// 🚀 PRODUCTION: Centralized Role-Based Authorization Engine
+export const requireEndpointAccess = (module, endpoint, method = 'GET') => {
+    return catchAsyncErrors(async (req, res, next) => {
+        const isApiRequest = req.originalUrl.startsWith('/api/');
+        
+        if (!req.user) {
+            const message = 'Authentication required to access this resource.';
+            if (isApiRequest) {
+                return res.status(401).json({
+                    success: false,
+                    message,
+                    code: 'UNAUTHORIZED'
+                });
+            }
+            return next(new ErrorHandler(message, 401));
+        }
 
-    passport.authenticate('jwt', { session: false }, (err, user, info) => {
-        if (err) {
-            return next(err);
+        const userRole = req.user.role;
+        const hasPermission = hasAccess(userRole, module, endpoint);
+        
+        console.log('� [requireEndpointAccess] Access check:', {
+            user: { id: req.user._id, role: userRole },
+            module,
+            endpoint,
+            method,
+            hasPermission,
+            url: req.originalUrl
+        });
+
+        if (!hasPermission) {
+            const message = `Access denied. Role '${userRole}' cannot access ${module}/${endpoint}.`;
+            
+            if (isApiRequest) {
+                return res.status(403).json({
+                    success: false,
+                    message,
+                    code: 'FORBIDDEN',
+                    details: {
+                        userRole,
+                        module,
+                        endpoint,
+                        requiredPermissions: getEndpointConfig(module, endpoint)
+                    }
+                });
+            }
+            return next(new ErrorHandler(message, 403));
         }
-        if (!user) {
-            return next(new ErrorHandler("Unauthorized. Please log in to access this resource.", 401));
-        }
-        if (user.role !== 'Patient') {
-            return next(new ErrorHandler(`Forbidden. Your role (${user.role}) is not authorized for this resource.`, 403));
-        }
-        req.user = user;
+
         next();
-    })(req, res, next);
-});
+    });
+};
 
-// Admin-specific authentication
-export const isAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
-    console.log('👑 [isAdminAuthenticated] Checking admin access');
-
-    passport.authenticate('jwt', { session: false }, (err, user, info) => {
-        if (err) {
-            return next(err);
-        }
-        if (!user) {
-            return next(new ErrorHandler("Unauthorized. Please log in to access this resource.", 401));
-        }
-        if (user.role !== 'Admin') {
-            return next(new ErrorHandler(`Forbidden. Your role (${user.role}) is not authorized for this resource.`, 403));
-        }
-        req.user = user;
-        next();
-    })(req, res, next);
-});
-
-// Doctor-specific authentication
-export const isDoctorAuthenticated = catchAsyncErrors(async (req, res, next) => {
-    console.log('👨‍⚕️ [isDoctorAuthenticated] Checking doctor access');
-
-    passport.authenticate('jwt', { session: false }, (err, user, info) => {
-        if (err) {
-            return next(err);
-        }
-        if (!user) {
-            return next(new ErrorHandler("Unauthorized. Please log in to access this resource.", 401));
-        }
-        if (user.role !== 'Doctor') {
-            return next(new ErrorHandler(`Forbidden. Your role (${user.role}) is not authorized for this resource.`, 403));
-        }
-        req.user = user;
-        next();
-    })(req, res, next);
-});
+// 🔧 LEGACY: Simple role-based access (deprecated - use requireEndpointAccess)
 export const requireRole = (allowedRoles) => {
     return catchAsyncErrors(async (req, res, next) => {
         console.log('🔑 [requireRole] Checking roles:', { allowedRoles, userRole: req.user?.role });
 
-        // Kiểm tra nếu API request hay không dựa vào đường dẫn
         const isApiRequest = req.originalUrl.startsWith('/api/');
 
         if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -146,7 +139,6 @@ export const requireRole = (allowedRoles) => {
                 ? `Forbidden. Your role (${req.user.role}) is not authorized for this resource.`
                 : 'Unauthorized. Please log in to access this resource.';
                 
-            // Nếu là API request, luôn trả về JSON error response
             if (isApiRequest) {
                 return res.status(req.user ? 403 : 401).json({
                     success: false,
@@ -155,27 +147,57 @@ export const requireRole = (allowedRoles) => {
                 });
             }
             
-            // Nếu không, tiếp tục với error handler thông thường
             return next(new ErrorHandler(message, req.user ? 403 : 401));
         }
         next();
     });
 };
 
-export const canAccessPatients = catchAsyncErrors(async (req, res, next) => {
-    const allowedRoles = ['Admin', 'Doctor', 'Receptionist'];
+// 🔧 SPECIALIZED: Resource ownership validation
+export const requireResourceOwnership = (resourceField = 'patientId') => {
+    return catchAsyncErrors(async (req, res, next) => {
+        const isApiRequest = req.originalUrl.startsWith('/api/');
+        
+        if (!req.user) {
+            const message = 'Authentication required.';
+            if (isApiRequest) {
+                return res.status(401).json({
+                    success: false,
+                    message,
+                    code: 'UNAUTHORIZED'
+                });
+            }
+            return next(new ErrorHandler(message, 401));
+        }
 
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return next(new ErrorHandler(
-            `Access denied. Your role (${req.user?.role || 'Unknown'}) cannot access patient data.`,
-            403
-        ));
-    }
+        // Admin and Doctor bypass ownership check
+        if (['Admin', 'Doctor'].includes(req.user.role)) {
+            return next();
+        }
 
-    next();
-});
+        // Patient must access only their own resources
+        if (req.user.role === 'Patient') {
+            const resourceOwnerId = req.params[resourceField] || req.body[resourceField] || req.query[resourceField];
+            
+            if (resourceOwnerId && resourceOwnerId !== req.user._id.toString()) {
+                const message = 'Access denied. You can only access your own resources.';
+                
+                if (isApiRequest) {
+                    return res.status(403).json({
+                        success: false,
+                        message,
+                        code: 'FORBIDDEN_OWNERSHIP'
+                    });
+                }
+                return next(new ErrorHandler(message, 403));
+            }
+        }
 
-// 🔧 NEW: Error handling for invalid ObjectId
+        next();
+    });
+};
+
+// 🔧 UTILITY: Object ID validation
 export const validateObjectId = (paramName = 'id') => {
     return catchAsyncErrors(async (req, res, next) => {
         const id = req.params[paramName];
@@ -189,18 +211,10 @@ export const validateObjectId = (paramName = 'id') => {
     });
 };
 
-export const isDoctor = (req, res, next) => {
-    if (req.user.role !== 'Doctor') {
-        return next(new ErrorHandler(`Forbidden. Your role (${req.user.role}) is not authorized for this resource.`, 403));
-    }
-    next();
-};
-export const isDoctorOrAdminAuthenticated = catchAsyncErrors(async (req, res, next) => {
-    const userRole = req.user.role;
-    if (userRole !== "Doctor" && userRole !== "Admin") {
-        return next(
-            new ErrorHandler(`${userRole} not authorized for this resource!`, 403)
-        );
-    }
-    next();
-});
+// 🔧 LEGACY COMPATIBILITY: Single role authentication (deprecated)
+export const isPatientAuthenticated = requireRole(['Patient']);
+export const isAdminAuthenticated = requireRole(['Admin']);
+export const isDoctorAuthenticated = requireRole(['Doctor']);
+export const isDoctor = requireRole(['Doctor']);
+export const isDoctorOrAdminAuthenticated = requireRole(['Doctor', 'Admin']);
+export const canAccessPatients = requireRole(['Admin', 'Doctor', 'Receptionist']);

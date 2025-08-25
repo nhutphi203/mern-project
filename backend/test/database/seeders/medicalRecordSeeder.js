@@ -217,6 +217,9 @@ class MedicalRecordSeeder {
                     licenseNumber: `MD${i}123456`,
                     phone: `123456789${i}`,
                     password: '$2b$10$3Xe8ZJ0OkWpG1V1ZJ9G3N.OjWO1P8M2V9NMQyoQ3OWy2.yZ8c8K3K',
+                    gender: 'Male',
+                    dob: new Date('1980-01-01'),
+                    nic: `80012345${i}`,
                     isTestData: true
                 });
                 doctors.push(doctor);
@@ -228,10 +231,11 @@ class MedicalRecordSeeder {
                     lastName: `Performance`,
                     email: `perf.patient${i}@test.com`,
                     role: 'Patient',
-                    dateOfBirth: new Date(1990 + (i % 30), i % 12, (i % 28) + 1),
+                    dob: new Date(1990 + (i % 30), i % 12, (i % 28) + 1),
                     gender: i % 2 === 0 ? 'Male' : 'Female',
                     phone: `987654321${i}`,
                     password: '$2b$10$3Xe8ZJ0OkWpG1V1ZJ9G3N.OjWO1P8M2V9NMQyoQ3OWy2.yZ8c8K3K',
+                    nic: `90012345${i}`,
                     isTestData: true
                 });
                 patients.push(patient);

@@ -2,6 +2,7 @@
 import React from 'react';
 import Header from './Header'; // Đổi tên import thành Header cho nhất quán
 import { Sidebar } from 'lucide-react';
+import ChatWidget from '../ChatWidget/ChatWidget';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -22,6 +23,8 @@ const Layout: React.FC<LayoutProps> = ({ children, withSidebar = false }) => {
                     </main>
                     {/* Có thể bỏ Footer trong layout dashboard nếu muốn */}
                 </div>
+                {/* AI Chat Widget */}
+                <ChatWidget position="bottom-right" />
             </div>
         );
     }
@@ -38,6 +41,9 @@ const Layout: React.FC<LayoutProps> = ({ children, withSidebar = false }) => {
                     <p>&copy; 2025 HealthCare Center. All rights reserved.</p>
                 </div>
             </footer>
+
+            {/* AI Chat Widget for public users */}
+            <ChatWidget position="bottom-right" />
         </div>
     );
 };

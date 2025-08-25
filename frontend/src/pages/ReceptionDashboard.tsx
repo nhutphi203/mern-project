@@ -103,7 +103,12 @@ const ReceptionDashboard: React.FC = () => {
                                                 <TableRow key={app._id}>
                                                     <TableCell className="font-medium">{`${app.firstName} ${app.lastName}`}</TableCell>
                                                     <TableCell>{new Date(app.appointment_date).toLocaleTimeString('vi-VN')}</TableCell>
-                                                    <TableCell>{`BS. ${app.doctor.firstName} ${app.doctor.lastName}`}</TableCell>
+                                                    <TableCell>
+                                                        {app.doctor
+                                                            ? `BS. ${app.doctor.firstName} ${app.doctor.lastName}`
+                                                            : 'BS. Unknown'
+                                                        }
+                                                    </TableCell>
                                                     <TableCell className="text-right">
                                                         <Button
                                                             size="sm"

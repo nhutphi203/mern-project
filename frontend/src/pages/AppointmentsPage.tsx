@@ -32,8 +32,12 @@ const AppointmentsPage: React.FC = () => {
         return appointments
             .filter(app => {
                 const searchLower = searchTerm.toLowerCase();
-                const patientName = `${app.patientId.firstName} ${app.patientId.lastName}`.toLowerCase();
-                const doctorName = `${app.doctorId.firstName} ${app.doctorId.lastName}`.toLowerCase();
+                const patientName = app.patientId
+                    ? `${app.patientId.firstName} ${app.patientId.lastName}`.toLowerCase()
+                    : '';
+                const doctorName = app.doctorId
+                    ? `${app.doctorId.firstName} ${app.doctorId.lastName}`.toLowerCase()
+                    : '';
                 return patientName.includes(searchLower) || doctorName.includes(searchLower);
             })
             .filter(app => {
@@ -116,9 +120,17 @@ const AppointmentsPage: React.FC = () => {
                             {currentAppointments.map((appointment) => (
                                 <div key={appointment._id} className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 hover:bg-muted/50">
                                     <div className="md:col-span-2 space-y-2">
-                                        <div className="font-semibold text-lg">{appointment.patientId.firstName} {appointment.patientId.lastName}</div>
+                                        <div className="font-semibold text-lg">
+                                            {appointment.patientId
+                                                ? `${appointment.patientId.firstName} ${appointment.patientId.lastName}`
+                                                : 'Unknown Patient'
+                                            }
+                                        </div>
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                                            <span className="flex items-center"><User className="mr-1 h-4 w-4" />Dr. {appointment.doctorId.firstName}</span>
+                                            <span className="flex items-center">
+                                                <User className="mr-1 h-4 w-4" />
+                                                Dr. {appointment.doctorId?.firstName || 'Unknown Doctor'}
+                                            </span>
                                             <span className="flex items-center"><Clock className="mr-1 h-4 w-4" />{format(new Date(appointment.appointment_date), 'PPpp')}</span>
                                             <span className="flex items-center"><MapPin className="mr-1 h-4 w-4" />{appointment.department}</span>
                                         </div>
@@ -135,7 +147,7 @@ const AppointmentsPage: React.FC = () => {
                                                 </Button>
                                             </div>
                                         )}
-                                        <Link to={`/patient-records/${appointment.patientId._id}?appointmentId=${appointment._id}`}>
+                                        <Link to={`/patient-records/${appointment.patientId?._id || 'unknown'}?appointmentId=${appointment._id}`}>
                                             <Button variant="ghost" size="sm" className="w-full justify-start md:justify-end">View Details</Button>
                                         </Link>
                                         <Button size="sm" variant="ghost" className="text-red-500 w-full justify-start md:justify-end" onClick={() => handleDelete(appointment._id)} disabled={isDeleting}>

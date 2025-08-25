@@ -1,78 +1,40 @@
 import express from 'express';
 import { billingController, insuranceController } from '../controller/billingController.js';
-import { isAuthenticated, requireRole } from '../middlewares/auth.js';
+import { isAuthenticated, requireEndpointAccess } from '../middlewares/auth.js';
+import createRBACRouter from '../middlewares/rbacRouter.js';
 
-const router = express.Router();
+// 🚀 PRODUCTION: Create RBAC-enforced router for Billing System
+const router = createRBACRouter('billing', {
+    requireAuth: true,
+    logAccess: true,
+    validateIds: true
+});
 
-// Invoice management routes
-router.post('/invoices',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.createInvoice
-);
+// 🔒 SECURE: Invoice management routes with strict RBAC
+router.securePost('/invoices', 'create-invoices', billingController.createInvoice);
 
-router.get('/invoices',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.getAllInvoices
-);
+router.secureGet('/invoices', 'invoices', billingController.getAllInvoices);
 
-router.get('/invoices/:id',
-    isAuthenticated,
-    billingController.getInvoiceById
-);
+router.secureGet('/invoices/:id', 'invoice-details', billingController.getInvoiceById);
 
-router.post('/invoices/:id/payments',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.processPayment
-);
+router.securePost('/invoices/:id/payments', 'process-payments', billingController.processPayment);
 
-router.post('/invoices/:id/insurance/submit',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.submitInsuranceClaim
-);
+router.securePost('/invoices/:id/insurance/submit', 'submit-insurance', billingController.submitInsuranceClaim);
 
-router.patch('/invoices/:id/insurance/status',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.updateInsuranceClaimStatus
-);
+router.securePatch('/invoices/:id/insurance/status', 'update-insurance-status', billingController.updateInsuranceClaimStatus);
 
-// Reporting routes
-router.get('/reports/billing',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    billingController.getBillingReport
-);
+// 🔒 SECURE: Reporting routes with strict RBAC
+router.secureGet('/reports/billing', 'reports', billingController.getBillingReport);
 
-router.get('/patients/:patientId/billing-history',
-    isAuthenticated,
-    billingController.getPatientBillingHistory
-);
+router.secureGet('/patients/:patientId/billing-history', 'billing-history', billingController.getPatientBillingHistory);
 
-// Insurance management routes
-router.post('/insurance/providers',
-    isAuthenticated,
-    requireRole(['Admin']),
-    insuranceController.createInsuranceProvider
-);
+// 🔒 SECURE: Insurance management routes with strict RBAC
+router.securePost('/insurance/providers', 'create-insurance-providers', insuranceController.createInsuranceProvider);
 
-router.get('/insurance/providers',
-    isAuthenticated,
-    insuranceController.getAllInsuranceProviders
-);
+router.secureGet('/insurance/providers', 'insurance-providers', insuranceController.getAllInsuranceProviders);
 
-router.post('/patients/:patientId/insurance',
-    isAuthenticated,
-    requireRole(['Admin', 'BillingStaff']),
-    insuranceController.addPatientInsurance
-);
+router.securePost('/patients/:patientId/insurance', 'add-patient-insurance', insuranceController.addPatientInsurance);
 
-router.get('/patients/:patientId/insurance',
-    isAuthenticated,
-    insuranceController.getPatientInsurance
-);
+router.secureGet('/patients/:patientId/insurance', 'patient-insurance', insuranceController.getPatientInsurance);
 
 export default router;

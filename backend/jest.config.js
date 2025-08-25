@@ -1,0 +1,38 @@
+export default {
+    testEnvironment: "node",
+    setupFiles: ["<rootDir>/test/setup.js"],
+    testMatch: [
+        "**/test/**/*.test.js"
+    ],
+    collectCoverageFrom: [
+        "controller/**/*.js",
+        "models/**/*.js",
+        "router/**/*.js",
+        "middlewares/**/*.js",
+        "!**/node_modules/**",
+        "!**/test/**"
+    ],
+    coverageReporters: [
+        "text",
+        "lcov",
+        "html"
+    ],
+    coverageThreshold: {
+        global: {
+            branches: 80,
+            functions: 80,
+            lines: 80,
+            statements: 80
+        }
+    },
+    testTimeout: 30000,
+    verbose: true,
+    forceExit: true,
+    detectOpenHandles: true,
+    transform: {
+        "^.+\\.(js|jsx)$": "babel-jest"
+    },
+    transformIgnorePatterns: [
+        "node_modules/(?!(@faker-js)/)"
+    ]
+};

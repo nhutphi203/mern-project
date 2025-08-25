@@ -11,25 +11,23 @@ import {
 } from '../controller/appointmentController.js';
 import {
     isAuthenticated, // Import middleware chung
-    isAdminAuthenticated,
-    isPatientAuthenticated,
-    isDoctorAuthenticated,
+    requireRole,     // Use requireRole instead of specific role middlewares
 } from '../middlewares/auth.js'
 
 const router = express.Router();
 
 // Định nghĩa các route
-router.post("/post", isPatientAuthenticated, postAppointment);
-router.get("/getall", isAdminAuthenticated, getAllAppointments);
-router.put("/update/:id", isAdminAuthenticated, updateAppointmentStatus);
-router.delete("/delete/:id", isAdminAuthenticated, deleteAppointment);
-router.get("/stats", isAdminAuthenticated, getAppointmentStats);
+router.post("/post", isAuthenticated, requireRole(['Patient']), postAppointment);
+router.get("/getall", isAuthenticated, requireRole(['Admin']), getAllAppointments);
+router.put("/update/:id", isAuthenticated, requireRole(['Admin']), updateAppointmentStatus);
+router.delete("/delete/:id", isAuthenticated, requireRole(['Admin']), deleteAppointment);
+router.get("/stats", isAuthenticated, requireRole(['Admin']), getAppointmentStats);
 // === ROUTE MỚI CHO BỆNH NHÂN VÀ BÁC SĨ ===
 // Route này cho phép cả Patient và Doctor truy cập
 router.get("/my-appointments", isAuthenticated, getMyAppointments);
 router.get("/filter",
     isAuthenticated,
-    isAdminAuthenticated, isDoctorAuthenticated,
+    requireRole(['Admin', 'Doctor']),
     filterAppointments
 );
 router.get("/:id", isAuthenticated, getAppointmentById);

@@ -6,6 +6,9 @@ import {
     updateMedicalRecord,
     getPatientMedicalHistory,
     getMedicalRecordById,
+    getAllMedicalRecords,
+    getRecordsSummary,
+    getStatistics,
     // Import các hàm controller mới cho media
     getMediaRecordsByAppointment,
     uploadMediaRecord,
@@ -14,6 +17,11 @@ import {
 import { isAuthenticated, requireRole } from '../middlewares/auth.js';
 
 const router = express.Router();
+
+// ===== NEW API ROUTES FOR REPORTS =====
+router.get('/all', isAuthenticated, getAllMedicalRecords);
+router.get('/summary-legacy', isAuthenticated, getRecordsSummary);
+router.get('/statistics-legacy', isAuthenticated, getStatistics);
 
 // ===== LEGACY MEDICAL RECORD ROUTES =====
 router.post('/legacy', isAuthenticated, requireRole(['Doctor']), createMedicalRecord);

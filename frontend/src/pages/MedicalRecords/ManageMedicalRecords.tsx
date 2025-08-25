@@ -48,6 +48,7 @@ import { format } from 'date-fns';
 import { useMedicalRecords } from '@/hooks/useMedicalRecords';
 import { MedicalRecordsAPI, MedicalRecord } from '@/api/medicalRecords';
 import { useCurrentUser } from '@/hooks/useAuth';
+import MedicalRecordCard from '@/components/MedicalRecords/MedicalRecordCard';
 
 const ManageMedicalRecords = () => {
     const { data: currentUser } = useCurrentUser();
@@ -270,66 +271,13 @@ const ManageMedicalRecords = () => {
                         {records && records.length > 0 ? (
                             <>
                                 {records.map((record) => (
-                                    <div key={record._id} className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
-                                        <div className="flex items-center justify-between">
-                                            <div className="space-y-2">
-                                                <div className="flex items-center space-x-3">
-                                                    <h3 className="font-semibold text-lg">
-                                                        {record.patientId?.firstName} {record.patientId?.lastName}
-                                                    </h3>
-                                                    <Badge className={getStatusColor(record.status)}>
-                                                        {record.status}
-                                                    </Badge>
-                                                    <Badge className={getPriorityColor(record.priority)}>
-                                                        {record.priority}
-                                                    </Badge>
-                                                </div>
-
-                                                <div className="text-sm text-muted-foreground">
-                                                    <p><strong>Chief Complaint:</strong> {record.chiefComplaint || 'No complaint recorded'}</p>
-                                                    <p><strong>Diagnosis:</strong> {record.diagnosis?.primary?.description || 'No diagnosis recorded'}</p>
-                                                    <p><strong>Doctor:</strong> Dr. {record.doctorId?.firstName} {record.doctorId?.lastName}</p>
-                                                </div>
-
-                                                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                                    <span>ID: {record._id.slice(-8)}</span>
-                                                    <span>Created: {format(new Date(record.createdAt), 'MMM dd, yyyy')}</span>
-                                                    <span>Updated: {format(new Date(record.updatedAt), 'MMM dd, yyyy')}</span>
-                                                </div>
-                                            </div>
-
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        View Details
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit Record
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="text-red-600"
-                                                        onClick={() => {
-                                                            setSelectedRecord(record);
-                                                            setIsDeleteDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete Record
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
+                                    <MedicalRecordCard
+                                        key={record._id}
+                                        record={record}
+                                        showPatientInfo={true}
+                                        showActions={true}
+                                        userRole={currentUser?.user.role}
+                                    />
                                 ))}
 
                                 {/* Pagination */}

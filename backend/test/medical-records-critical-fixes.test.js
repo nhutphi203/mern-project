@@ -1,16 +1,24 @@
 // Medical Record Critical Issues Test
 const request = require('supertest');
-const app = require('../app');
+
+// Import Express app with dynamic import for ES modules compatibility
+let app;
+
+// Global test variables for export
+let doctorToken, patientToken, testAppointmentId, testPatientId;
 
 describe('Medical Records API - Critical Issues Fixed', () => {
-    let doctorToken, patientToken, testAppointmentId, testPatientId;
 
     beforeAll(async () => {
-        // Setup test tokens and IDs
-        doctorToken = 'your-doctor-token';
-        patientToken = 'your-patient-token';
-        testAppointmentId = 'test-appointment-id';
-        testPatientId = 'test-patient-id';
+        // Dynamic import for ES modules
+        const appModule = await import('../app.js');
+        app = appModule.default;
+        
+        // Setup valid JWT tokens for existing users
+        doctorToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGE5NjE0ODhkNTAxMDI2MGRlMjU3NGYiLCJpYXQiOjE3NTU5MzExNzYsImV4cCI6MTc1NjUzNTk3Nn0.3rzTTSiAxI4oF-73vJ8mH-B4uzzAvyq1r46v3cjazqE';
+        patientToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGE5NjE0ODhkNTAxMDI2MGRlMjU3NTMiLCJpYXQiOjE3NTU5MzExNzYsImV4cCI6MTc1NjUzNTk3Nn0.RpMfpXUKUObzzV691nTZRd26kjqAIGdMP07XRFZpjQg';
+        testAppointmentId = '68a961488d5010260de25755';
+        testPatientId = '68a961488d5010260de25753';
     });
 
     describe('ISSUE 1 FIX: appointmentId Support', () => {

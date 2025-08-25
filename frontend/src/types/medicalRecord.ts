@@ -146,6 +146,19 @@ export interface TreatmentPlan {
     activityRestrictions: string[];
 }
 
+export interface LabOrder {
+    _id?: string;
+    testName: string;
+    testCode?: string;
+    priority?: 'Routine' | 'Urgent' | 'STAT';
+    status?: 'Ordered' | 'In Progress' | 'Completed' | 'Cancelled';
+    orderedDate?: string;
+    scheduledDate?: string;
+    completedDate?: string;
+    results?: string;
+    notes?: string;
+}
+
 export interface ProgressNote {
     date: string;
     provider: string;
@@ -174,7 +187,7 @@ export interface EnhancedMedicalRecord {
     pastMedicalHistory?: string[];
     medications?: string[];
     allergies?: string[];
-    socialHistory?: Record<string, any>;
+    socialHistory?: Record<string, string | number | boolean>;
     familyHistory?: string[];
     vitalSigns?: VitalSigns;
     physicalExamination?: PhysicalExamination;
@@ -188,7 +201,7 @@ export interface EnhancedMedicalRecord {
 
     // Treatment and care plan
     plan: TreatmentPlan;
-    labOrders?: any[];
+    labOrders?: LabOrder[];
     progressNotes: ProgressNote[];
 
     // Record metadata - ISSUE 3 FIX: Consistent status mapping
@@ -290,11 +303,21 @@ export interface UpdateMedicalRecordRequest extends Partial<CreateMedicalRecordR
 }
 
 // Data transformation helpers - ISSUE 2 FIX
-export const mapLegacyMedicalRecord = (record: any): EnhancedMedicalRecord => {
+export const mapLegacyMedicalRecord = (record: Partial<EnhancedMedicalRecord> & Record<string, unknown>): EnhancedMedicalRecord => {
     return {
+        // Required fields with defaults
+        _id: record._id || '',
+        patientId: record.patientId || '',
+        doctorId: record.doctorId || '',
+        chiefComplaint: record.chiefComplaint || '',
+        createdAt: record.createdAt || new Date().toISOString(),
+        updatedAt: record.updatedAt || new Date().toISOString(),
+
+        // Spread the rest of the record
         ...record,
+
         // ISSUE 1 FIX: Map encounterId to appointmentId if appointmentId is missing
-        appointmentId: record.appointmentId || record.encounterId,
+        appointmentId: record.appointmentId || (typeof record.encounterId === 'string' ? record.encounterId : record.encounterId?._id),
 
         // ISSUE 2 FIX: Ensure diagnosis structure exists
         diagnosis: record.diagnosis || {

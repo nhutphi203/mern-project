@@ -169,6 +169,52 @@ const Dashboard = () => {
                             </CardFooter>
                         </Card>
 
+                        {/* Vital Signs Card */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <HeartPulse className="h-5 w-5 text-red-500" />
+                                    My Vital Signs
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground text-sm mb-4">
+                                    Monitor your latest vital signs and health metrics.
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-600">Last Reading:</span>
+                                        <span className="font-medium">2 hours ago</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                        <div className="bg-blue-50 p-2 rounded">
+                                            <div className="text-blue-600 font-medium">BP</div>
+                                            <div className="text-blue-800">120/80</div>
+                                        </div>
+                                        <div className="bg-green-50 p-2 rounded">
+                                            <div className="text-green-600 font-medium">HR</div>
+                                            <div className="text-green-800">72 BPM</div>
+                                        </div>
+                                        <div className="bg-orange-50 p-2 rounded">
+                                            <div className="text-orange-600 font-medium">Temp</div>
+                                            <div className="text-orange-800">36.5°C</div>
+                                        </div>
+                                        <div className="bg-purple-50 p-2 rounded">
+                                            <div className="text-purple-600 font-medium">O2</div>
+                                            <div className="text-purple-800">98%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Link to="/my-vital-signs" className="w-full">
+                                    <Button variant="outline" className="w-full">
+                                        View All Readings <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </Link>
+                            </CardFooter>
+                        </Card>
+
                         {/* Quick Actions */}
                         <div className="space-y-4">
                             <Link to="/book-appointment" className="block">
@@ -217,7 +263,10 @@ const Dashboard = () => {
                                             <div key={apt._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors">
                                                 <div>
                                                     <p className="font-semibold text-gray-800 dark:text-gray-200">
-                                                        Dr. {apt.doctor.firstName} {apt.doctor.lastName}
+                                                        {apt.doctor
+                                                            ? `Dr. ${apt.doctor.firstName} ${apt.doctor.lastName}`
+                                                            : 'Dr. Unknown'
+                                                        }
                                                     </p>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">{apt.department}</p>
                                                 </div>

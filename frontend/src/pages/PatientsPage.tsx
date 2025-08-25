@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,16 +10,36 @@ import { Link } from 'react-router-dom';
 import { patientsApi, type Patient, type PatientFilters } from '@/api/patients';
 import { toast } from 'sonner';
 
+// Custom debounce hook
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+};
+
 const PatientsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGender, setFilterGender] = useState<string>('');
 
+    // Debounce search term to avoid excessive API calls
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
     // Real API query with filters
     const { data: patientsData, isLoading, error, refetch } = useQuery({
-        queryKey: ['patients', { searchTerm, filterGender }],
+        queryKey: ['patients', { searchTerm: debouncedSearchTerm, filterGender }],
         queryFn: async () => {
             const filters: PatientFilters = {};
-            if (searchTerm) filters.search = searchTerm;
+            if (debouncedSearchTerm) filters.search = debouncedSearchTerm;
             if (filterGender) filters.gender = filterGender;
 
             const response = await patientsApi.getAllPatients(filters);
@@ -31,15 +51,10 @@ const PatientsPage: React.FC = () => {
     const patients = patientsData?.patients || [];
     const patientCount = patientsData?.count || 0;
 
-    // Handle search and filtering
-    const handleSearch = () => {
-        refetch();
-    };
-
-    const handleGenderFilter = (gender: string) => {
+    // Handle gender filtering
+    const handleGenderFilter = useCallback((gender: string) => {
         setFilterGender(gender);
-        refetch();
-    };
+    }, []);
 
     if (error) {
         return (
@@ -85,7 +100,6 @@ const PatientsPage: React.FC = () => {
                                 placeholder="Search patients..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                 className="pl-10"
                             />
                         </div>

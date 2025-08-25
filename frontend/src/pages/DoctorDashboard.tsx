@@ -12,10 +12,129 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Users, Clock, Loader2, LogOut, Stethoscope, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Clock, Loader2, LogOut, Stethoscope, AlertCircle, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 import type { PopulatedAppointment } from '@/api/types';
+
+// Vital Signs Doctor View Component
+const VitalSignsDoctorView = () => {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        Recent Vital Signs
+                    </CardTitle>
+                    <CardDescription>
+                        Monitor patient vital signs for clinical assessment
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Critical Alerts */}
+                        <Card className="border-red-200 bg-red-50">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-semibold text-red-800">Critical Alerts</h4>
+                                        <p className="text-sm text-red-600">Abnormal vital signs requiring attention</p>
+                                    </div>
+                                    <div className="text-2xl font-bold text-red-700">3</div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Normal Range */}
+                        <Card className="border-green-200 bg-green-50">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-semibold text-green-800">Normal Range</h4>
+                                        <p className="text-sm text-green-600">Patients with stable vital signs</p>
+                                    </div>
+                                    <div className="text-2xl font-bold text-green-700">12</div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Recent Measurements */}
+                    <div className="mt-6">
+                        <h4 className="font-semibold mb-4">Recent Measurements</h4>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Patient</TableHead>
+                                    <TableHead>Blood Pressure</TableHead>
+                                    <TableHead>Heart Rate</TableHead>
+                                    <TableHead>Temperature</TableHead>
+                                    <TableHead>Time</TableHead>
+                                    <TableHead>Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell className="font-medium">John Smith</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1">
+                                            <TrendingUp className="h-4 w-4 text-red-500" />
+                                            180/95
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>78 BPM</TableCell>
+                                    <TableCell>37.2°C</TableCell>
+                                    <TableCell>10:30 AM</TableCell>
+                                    <TableCell>
+                                        <Badge variant="destructive">High BP</Badge>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium">Maria Garcia</TableCell>
+                                    <TableCell>120/80</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1">
+                                            <TrendingUp className="h-4 w-4 text-orange-500" />
+                                            105 BPM
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>36.8°C</TableCell>
+                                    <TableCell>11:15 AM</TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary">Elevated HR</Badge>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium">David Johnson</TableCell>
+                                    <TableCell>115/75</TableCell>
+                                    <TableCell>72 BPM</TableCell>
+                                    <TableCell>36.5°C</TableCell>
+                                    <TableCell>11:45 AM</TableCell>
+                                    <TableCell>
+                                        <Badge variant="default">Normal</Badge>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="mt-6 flex gap-4">
+                        <Button className="flex items-center gap-2">
+                            <Activity className="h-4 w-4" />
+                            Record Vital Signs
+                        </Button>
+                        <Button variant="outline" className="flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4" />
+                            View Trends
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
 
 interface AppointmentListProps {
     appointments: PopulatedAppointment[];
@@ -111,7 +230,12 @@ const DoctorDashboard = () => {
                                     waitingList.map((encounter, index) => (
                                         <TableRow key={encounter._id}>
                                             <TableCell>{index + 1}</TableCell>
-                                            <TableCell>{`${encounter.patientId.firstName} ${encounter.patientId.lastName}`}</TableCell>
+                                            <TableCell>
+                                                {encounter.patientId
+                                                    ? `${encounter.patientId.firstName} ${encounter.patientId.lastName}`
+                                                    : 'Unknown Patient'
+                                                }
+                                            </TableCell>
                                             <TableCell>{format(new Date(encounter.checkInTime), 'p')}</TableCell>
                                             <TableCell>{encounter.appointmentId?.appointment_date || 'N/A'}</TableCell>
                                             <TableCell className="text-right">
@@ -136,12 +260,16 @@ const DoctorDashboard = () => {
                     <TabsList>
                         <TabsTrigger value="today">Today's Schedule ({todayAppointments.length})</TabsTrigger>
                         <TabsTrigger value="all">All Appointments ({doctorAppointments.length})</TabsTrigger>
+                        <TabsTrigger value="vitals">Vital Signs</TabsTrigger>
                     </TabsList>
                     <TabsContent value="today">
                         <AppointmentList appointments={todayAppointments} title="Today's Appointments" />
                     </TabsContent>
                     <TabsContent value="all">
                         <AppointmentList appointments={doctorAppointments} title="All Scheduled Appointments" />
+                    </TabsContent>
+                    <TabsContent value="vitals">
+                        <VitalSignsDoctorView />
                     </TabsContent>
                 </Tabs>
             </main>
@@ -172,10 +300,19 @@ const AppointmentList: React.FC<AppointmentListProps> = ({ appointments, title }
             <CardContent>
                 <div className="space-y-4">
                     {appointments.map(apt => (
-                        <Link to={`/patient-records/${apt.patientId._id}?appointmentId=${apt._id}`} key={apt._id} className="block">
+                        <Link
+                            to={apt.patientId?._id ? `/patient-records/${apt.patientId._id}?appointmentId=${apt._id}` : '#'}
+                            key={apt._id}
+                            className="block"
+                        >
                             <div className="border rounded-lg p-4 flex justify-between items-center hover:bg-gray-100">
                                 <div>
-                                    <p className="font-semibold text-lg">{apt.patientId.firstName} {apt.patientId.lastName}</p>
+                                    <p className="font-semibold text-lg">
+                                        {apt.patientId
+                                            ? `${apt.patientId.firstName} ${apt.patientId.lastName}`
+                                            : 'Unknown Patient'
+                                        }
+                                    </p>
                                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                                         <Clock className="h-4 w-4" />{format(new Date(apt.appointment_date), 'p')}
                                     </p>

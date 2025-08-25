@@ -18,7 +18,7 @@ import { MessageSquareQuote } from 'lucide-react'; // Icon cho SMS
 // Đảm bảo bạn đã tạo các icon này trong `src/components/icons/`
 import { IconGoogle } from '@/components/icons/IconGoogle';
 import { IconGithub } from '@/components/icons/IconGithub';
-import { IconFacebook } from '@/components/icons/IconFacebook';
+import { IconGmail } from '@/components/icons/IconGmail';
 
 
 // --- LOGIC VÀ TYPES (GIỮ NGUYÊN) ---
@@ -104,7 +104,7 @@ const RegisterForm = ({ onSubmit, isRegistering }: { onSubmit: (payload: unknown
         onSubmit(payload);
     };
 
-    const handleSocialLogin = (provider: 'google' | 'github' | 'facebook') => {
+    const handleSocialLogin = (provider: 'google' | 'github' | 'gmail') => {
         window.location.href = `${import.meta.env.VITE_API_BASE_URL}/users/auth/${provider}`;
     };
 
@@ -122,7 +122,7 @@ const RegisterForm = ({ onSubmit, isRegistering }: { onSubmit: (payload: unknown
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Button variant="outline" className="h-11" onClick={() => handleSocialLogin('google')}><IconGoogle className="mr-2 h-5 w-5" /> Google</Button>
                     <Button variant="outline" className="h-11" onClick={() => handleSocialLogin('github')}><IconGithub className="mr-2 h-5 w-5" /> GitHub</Button>
-                    <Button variant="outline" className="h-11" onClick={() => handleSocialLogin('facebook')}><IconFacebook className="mr-2 h-5 w-5" /> Facebook</Button>
+                    <Button variant="outline" className="h-11" onClick={() => handleSocialLogin('gmail')}><IconGmail className="mr-2 h-5 w-5" /> Gmail</Button>
                 </div>
                 <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>

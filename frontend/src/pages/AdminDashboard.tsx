@@ -27,6 +27,144 @@ import { useMessages } from '@/hooks/useMessages';
 import { useDoctors } from '@/hooks/useDoctors';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
+// Vital Signs Admin View Component
+const VitalSignsAdminView = () => {
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Vital Signs Overview Cards */}
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center">
+                            <Activity className="h-8 w-8 text-blue-600" />
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-muted-foreground">Total Readings</p>
+                                <p className="text-2xl font-bold">1,247</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center">
+                            <MessageSquare className="h-8 w-8 text-red-600" />
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-muted-foreground">Critical Alerts</p>
+                                <p className="text-2xl font-bold">8</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center">
+                            <Users className="h-8 w-8 text-green-600" />
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-muted-foreground">Patients Monitored</p>
+                                <p className="text-2xl font-bold">156</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center">
+                            <Clock className="h-8 w-8 text-orange-600" />
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-muted-foreground">Today's Records</p>
+                                <p className="text-2xl font-bold">47</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Critical Alerts Section */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-red-600" />
+                        Critical Vital Signs Alerts
+                    </CardTitle>
+                    <CardDescription>
+                        Patients requiring immediate attention based on abnormal vital signs
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-red-50">
+                            <div>
+                                <p className="font-semibold">John Smith - Room 302</p>
+                                <p className="text-sm text-muted-foreground">Blood Pressure: 180/95 mmHg</p>
+                                <p className="text-xs text-red-600">Recorded 15 minutes ago</p>
+                            </div>
+                            <Badge variant="destructive">Critical</Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-orange-50">
+                            <div>
+                                <p className="font-semibold">Maria Garcia - Room 205</p>
+                                <p className="text-sm text-muted-foreground">Heart Rate: 105 BPM</p>
+                                <p className="text-xs text-orange-600">Recorded 30 minutes ago</p>
+                            </div>
+                            <Badge variant="secondary">Elevated</Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50">
+                            <div>
+                                <p className="font-semibold">Robert Johnson - Room 410</p>
+                                <p className="text-sm text-muted-foreground">Temperature: 38.5°C</p>
+                                <p className="text-xs text-yellow-600">Recorded 1 hour ago</p>
+                            </div>
+                            <Badge variant="outline">Monitoring</Badge>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* System Statistics */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Vital Signs System Statistics</CardTitle>
+                    <CardDescription>
+                        Overview of vital signs monitoring across the hospital
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">98.5%</div>
+                            <p className="text-sm text-muted-foreground">Normal Readings</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-orange-600">1.2%</div>
+                            <p className="text-sm text-muted-foreground">Requires Monitoring</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">0.3%</div>
+                            <p className="text-sm text-muted-foreground">Critical</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex gap-4">
+                        <Button className="flex items-center gap-2">
+                            <Activity className="h-4 w-4" />
+                            Export Report
+                        </Button>
+                        <Button variant="outline" className="flex items-center gap-2">
+                            <ClipboardList className="h-4 w-4" />
+                            View Trends
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 const AdminDashboard = () => {
     const { data: currentUser, isLoading } = useCurrentUser();
     const { logoutMutation } = useAuth();
@@ -48,7 +186,9 @@ const AdminDashboard = () => {
         const filtered = appointments.filter(appointment => {
             const searchLower = searchTerm.toLowerCase();
             const fullName = `${appointment.firstName} ${appointment.lastName}`.toLowerCase();
-            const doctorName = `${appointment.doctor.firstName} ${appointment.doctor.lastName}`.toLowerCase();
+            const doctorName = appointment.doctor
+                ? `${appointment.doctor.firstName} ${appointment.doctor.lastName}`.toLowerCase()
+                : '';
 
             return (
                 fullName.includes(searchLower) ||
@@ -296,6 +436,7 @@ const AdminDashboard = () => {
                 <Tabs defaultValue="appointments" className="space-y-6">
                     <TabsList>
                         <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                        <TabsTrigger value="vitals">Vital Signs</TabsTrigger>
                         <TabsTrigger value="messages">Messages</TabsTrigger>
                         <TabsTrigger value="doctors">Doctors</TabsTrigger>
                         <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -354,7 +495,10 @@ const AdminDashboard = () => {
                                                                 {appointment.email} • {appointment.phone}
                                                             </p>
                                                             <p className="text-sm text-muted-foreground">
-                                                                Dr. {appointment.doctor.firstName} {appointment.doctor.lastName} • {appointment.department}
+                                                                {appointment.doctor
+                                                                    ? `Dr. ${appointment.doctor.firstName} ${appointment.doctor.lastName} • ${appointment.department}`
+                                                                    : `Unknown Doctor • ${appointment.department}`
+                                                                }
                                                             </p>
                                                         </div>
                                                         <Badge className={getStatusColor(appointment.status)}>
@@ -411,6 +555,11 @@ const AdminDashboard = () => {
                                 )}
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    {/* Vital Signs Tab */}
+                    <TabsContent value="vitals">
+                        <VitalSignsAdminView />
                     </TabsContent>
 
                     {/* Messages Tab - Không thay đổi */}

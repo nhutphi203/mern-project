@@ -20,8 +20,6 @@ import {
 
 // 🔧 FIX: Import enhanced middleware functions
 import {
-    isAdminAuthenticated,
-    isPatientAuthenticated,
     isAuthenticated,
     requireRole,
     canAccessPatients,
@@ -57,8 +55,8 @@ router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 
 // --- ADMIN-ONLY ROUTES ---
-router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
-router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
+router.post("/admin/addnew", isAuthenticated, requireRole(['Admin']), addNewAdmin);
+router.post("/doctor/addnew", isAuthenticated, requireRole(['Admin']), addNewDoctor);
 
 // --- GENERAL AUTHENTICATED ROUTES ---
 router.get("/logout", isAuthenticated, logout);
@@ -101,6 +99,11 @@ router.post('/auth/token-exchange', (req, res) => {
 });
 
 // --- OAUTH ROUTES ---
+// Gmail OAuth - redirect to Google OAuth (Gmail = Google)
+router.get('/auth/gmail', (req, res) => {
+    res.redirect('/api/v1/users/auth/google');
+});
+
 router.get('/auth/google',
     passport.authenticate('google', {
         scope: ['profile', 'email'],
@@ -142,6 +145,8 @@ router.get('/auth/google/callback',
     }
 );
 
+// ❌ REMOVED: Facebook OAuth routes - đã thay bằng Gmail
+/*
 router.get('/auth/facebook',
     passport.authenticate('facebook', {
         scope: ['email'],
@@ -169,6 +174,7 @@ router.get('/auth/facebook/callback',
         }
     }
 );
+*/
 
 router.get('/auth/github',
     passport.authenticate('github', {

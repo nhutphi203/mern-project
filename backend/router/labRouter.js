@@ -14,10 +14,10 @@ router.post('/orders',
     labController.createLabOrder
 );
 
-// Get lab queue (technicians and lab supervisors)
+// Get lab queue (technicians, lab supervisors, and doctors)
 router.get('/queue',
     isAuthenticated,
-    requireRole(['Technician', 'Admin']),
+    requireRole(['Doctor', 'Technician', 'Admin']),
     labController.getLabQueue
 );
 
@@ -35,9 +35,10 @@ router.post('/results',
     labController.enterLabResult
 );
 
-// Get lab results - temporarily remove authentication for development
+// Get lab results - doctors can view results for their patients
 router.get('/results',
-    // isAuthenticated, // Commented out for development testing
+    isAuthenticated,
+    requireRole(['Doctor', 'Technician', 'Admin']),
     labController.getLabResults
 );
 

@@ -1,14 +1,103 @@
 // Test setup configuration
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
+dotenv.config({ path: './config/config.env' });
+console.log('JWT_SECRET in setup.js:', process.env.JWT_SECRET);
+import mongoose from 'mongoose';
+
+import supertest from 'supertest';
+import app from '../app.js';
+console.log('JWT_SECRET in setup.js:', process.env.JWT_SECRET);
+
+const request = supertest(app);
 
 // Load environment variables
-dotenv.config({ path: './config/config.env' });
 
 // Set test timeout
 jest.setTimeout(30000);
+// Global test users data with proper validation
+const globalTestUsersData = {
+    admin: {
+        firstName: 'Global',
+        lastName: 'Admin',
+        email: 'global.admin@test.com',
+        password: 'testpassword123',
+        phone: '1111111111',
+        gender: 'Male',
+        dob: '1985-01-01',
+        address: 'Test Address 123',
+        role: 'Admin'
+    },
+    doctor: {
+        firstName: 'Global',
+        lastName: 'Doctor',
+        email: 'global.doctor@test.com',
+        password: 'testpassword123',
+        phone: '2222222222',
+        gender: 'Male',
+        dob: '1980-01-01',
+        address: 'Test Address 456',
+        role: 'Doctor',
+        specialization: 'General Medicine'
+    },
+    patient: {
+        firstName: 'Global',
+        lastName: 'Patient',
+        email: 'global.patient@test.com',
+        password: 'testpassword123',
+        phone: '3333333333',
+        gender: 'Male',
+        dob: '1990-01-01',
+        nic: '123456789V',
+        address: 'Test Address 789',
+        role: 'Patient'
+    },
+    receptionist: {
+        firstName: 'Global',
+        lastName: 'Receptionist',
+        email: 'global.receptionist@test.com',
+        password: 'testpassword123',
+        phone: '4444444444',
+        gender: 'Female',
+        dob: '1988-01-01',
+        address: 'Test Address 012',
+        role: 'Receptionist'
+    },
+    nurse: {
+        firstName: 'Global',
+        lastName: 'Nurse',
+        email: 'global.nurse@test.com',
+        password: 'testpassword123',
+        phone: '5555555555',
+        gender: 'Female',
+        dob: '1989-01-01',
+        address: 'Test Address 345',
+        role: 'Nurse'
+    },
+    labTechnician: {
+        firstName: 'Global',
+        lastName: 'LabTech',
+        email: 'global.labtech@test.com',
+        password: 'testpassword123',
+        phone: '6666666666',
+        gender: 'Male',
+        dob: '1991-01-01',
+        address: 'Test Address 678',
+        role: 'LabTechnician'
+    },
+    billingStaff: {
+        firstName: 'Global',
+        lastName: 'BillingStaff',
+        email: 'global.billing@test.com',
+        password: 'testpassword123',
+        phone: '7777777777',
+        gender: 'Female',
+        dob: '1986-01-01',
+        address: 'Test Address 901',
+        role: 'BillingStaff'
+    }
+};
 
-// Setup test database connection
+// Setup test database connection and create global test users
 beforeAll(async () => {
     try {
         // Use test database
@@ -21,9 +110,71 @@ beforeAll(async () => {
             });
             console.log('✅ Connected to test database');
         }
+
+        // Wait for connection to be ready
+        if (mongoose.connection.readyState !== 1) {
+            await new Promise((resolve) => {
+                mongoose.connection.once('connected', resolve);
+            });
+        }
+
+        // Clean existing test users
+        try {
+            if (mongoose.connection.db) {
+                await mongoose.connection.db.collection('users').deleteMany({
+                    email: { $regex: /global\..*@test\.com$/i }
+                });
+                console.log('✅ Cleaned existing test users');
+            }
+        } catch (cleanError) {
+            console.warn('⚠️ Could not clean existing test users:', cleanError.message);
+        }
+
+        // Create global test users
+        global.testUsers = {};
+
+        for (const [role, userData] of Object.entries(globalTestUsersData)) {
+            try {
+                // Register user
+                const registerResponse = await request
+                    .post('/api/v1/user/register')
+                    .send(userData);
+
+                if (registerResponse.status === 201 || registerResponse.status === 200) {
+                    // Login to get token
+                    const loginResponse = await request
+                        .post('/api/v1/user/login')
+                        .send({
+                            email: userData.email,
+                            password: userData.password
+                        });
+
+                    if (loginResponse.status === 200 && loginResponse.body.token) {
+                        global.testUsers[role] = {
+                            id: registerResponse.body.user?.id || registerResponse.body.id,
+                            token: loginResponse.body.token,
+                            email: userData.email,
+                            role: userData.role
+                        };
+                        console.log(`✅ Created global test user: ${role}`);
+                    } else {
+                        console.warn(`⚠️ Failed to login global test user: ${role}`);
+                    }
+                } else {
+                    console.warn(`⚠️ Failed to register global test user: ${role}`);
+                }
+            } catch (error) {
+                console.warn(`⚠️ Error creating global test user ${role}:`, error.message);
+                console.warn(`Response status:`, error.response?.status);
+                console.warn(`Response body:`, error.response?.body);
+            }
+        }
+
+        console.log(`✅ Global test setup complete. Created ${Object.keys(global.testUsers || {}).length} test users`);
     } catch (error) {
-        console.error('❌ Failed to connect to test database:', error);
-        process.exit(1);
+        console.error('❌ Failed to setup test environment:', error.message);
+        // Don't exit process - let tests run without global users
+        global.testUsers = {};
     }
 });
 

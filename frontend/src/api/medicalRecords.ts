@@ -411,19 +411,6 @@ export class MedicalRecordsAPI {
         });
     }
 
-    // Get medical records summary for dashboard
-    static async getRecordsSummary(): Promise<{
-        success: boolean;
-        data: MedicalRecordSummary[];
-        stats: MedicalRecordsStats;
-    }> {
-        return apiRequest<{
-            success: boolean;
-            data: MedicalRecordSummary[];
-            stats: MedicalRecordsStats;
-        }>(`${this.baseUrl}/summary`);
-    }
-
     // Get medical record statistics
     static async getStatistics(): Promise<{
         success: boolean;
@@ -467,6 +454,358 @@ export class MedicalRecordsAPI {
         }>(`${this.baseUrl}/enhanced/${recordId}/sign`, {
             method: 'POST',
         });
+    }
+}
+
+// ==========================================
+// DIAGNOSIS INTERFACES
+// ==========================================
+export interface Diagnosis {
+    _id: string;
+    medicalRecordId: string;
+    doctorId: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+        specialization?: string;
+    };
+    patientId: {
+        _id: string;
+        firstName: string;
+        lastName: string;
+    };
+    icd10Code: string;
+    icd10Description: string;
+    customDescription?: string;
+    type: 'Primary' | 'Secondary' | 'Differential' | 'Rule Out' | 'History';
+    severity: 'Mild' | 'Moderate' | 'Severe' | 'Critical';
+    status: 'Active' | 'Resolved' | 'Chronic' | 'In Remission';
+    confidence: 'Confirmed' | 'Probable' | 'Possible' | 'Suspected';
+    onsetDate?: string;
+    diagnosedDate: string;
+    resolvedDate?: string;
+    clinicalNotes?: string;
+    complications?: Array<{
+        description: string;
+        date: string;
+        severity: 'Minor' | 'Major' | 'Life-threatening';
+    }>;
+    relatedDiagnoses?: string[];
+    createdBy: string;
+    lastModifiedBy?: string;
+    version: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ICD10Code {
+    code: string;
+    shortDescription: string;
+    fullDescription: string;
+    category: string;
+    commonUsage: number;
+}
+
+export interface ICD10Category {
+    code: string;
+    title: string;
+}
+
+export interface DiagnosisStatistics {
+    topDiagnoses: Array<{
+        _id: {
+            code: string;
+            description: string;
+        };
+        count: number;
+        severityBreakdown: string[];
+    }>;
+    categoryStats: Array<{
+        _id: string;
+        count: number;
+        avgSeverity: number;
+    }>;
+    totalDiagnoses: number;
+}
+
+export interface CreateDiagnosisRequest {
+    icd10Code: string;
+    customDescription?: string;
+    type?: 'Primary' | 'Secondary' | 'Differential' | 'Rule Out' | 'History';
+    severity?: 'Mild' | 'Moderate' | 'Severe' | 'Critical';
+    status?: 'Active' | 'Resolved' | 'Chronic' | 'In Remission';
+    confidence?: 'Confirmed' | 'Probable' | 'Possible' | 'Suspected';
+    onsetDate?: string;
+    clinicalNotes?: string;
+}
+
+export interface UpdateDiagnosisRequest extends Partial<CreateDiagnosisRequest> {
+    resolvedDate?: string;
+    complications?: Array<{
+        description: string;
+        date: string;
+        severity: 'Minor' | 'Major' | 'Life-threatening';
+    }>;
+}
+
+// ==========================================
+// DIAGNOSIS API SERVICE
+// ==========================================
+export class DiagnosisAPI {
+    private static baseUrl = '/api/v1/diagnosis';
+
+    // Add diagnosis to medical record
+    static async addDiagnosis(medicalRecordId: string, diagnosisData: CreateDiagnosisRequest): Promise<{
+        success: boolean;
+        data: Diagnosis;
+        message: string;
+    }> {
+        return apiRequest<{
+            success: boolean;
+            data: Diagnosis;
+            message: string;
+        }>(`${this.baseUrl}/medical-record/${medicalRecordId}`, {
+            method: 'POST',
+            data: diagnosisData,
+        });
+    }
+
+    // Get diagnoses for medical record
+    static async getDiagnosesByRecord(medicalRecordId: string, params?: {
+        type?: string;
+        status?: string;
+    }): Promise<{
+        success: boolean;
+        count: number;
+        data: Diagnosis[];
+    }> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    queryParams.append(key, value);
+                }
+            });
+        }
+
+        const url = `${this.baseUrl}/medical-record/${medicalRecordId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            data: Diagnosis[];
+        }>(url);
+    }
+
+    // Get patient's diagnosis history
+    static async getPatientDiagnoses(patientId: string, params?: {
+        status?: string;
+        limit?: number;
+        page?: number;
+        icd10Category?: string;
+    }): Promise<{
+        success: boolean;
+        count: number;
+        total: number;
+        page: number;
+        totalPages: number;
+        data: Diagnosis[];
+    }> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    queryParams.append(key, value.toString());
+                }
+            });
+        }
+
+        const url = `${this.baseUrl}/patient/${patientId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            total: number;
+            page: number;
+            totalPages: number;
+            data: Diagnosis[];
+        }>(url);
+    }
+
+    // Update diagnosis
+    static async updateDiagnosis(diagnosisId: string, updates: UpdateDiagnosisRequest): Promise<{
+        success: boolean;
+        data: Diagnosis;
+        message: string;
+    }> {
+        return apiRequest<{
+            success: boolean;
+            data: Diagnosis;
+            message: string;
+        }>(`${this.baseUrl}/${diagnosisId}`, {
+            method: 'PUT',
+            data: updates,
+        });
+    }
+
+    // Delete diagnosis
+    static async deleteDiagnosis(diagnosisId: string): Promise<{
+        success: boolean;
+        message: string;
+    }> {
+        return apiRequest<{
+            success: boolean;
+            message: string;
+        }>(`${this.baseUrl}/${diagnosisId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    // Search ICD-10 codes
+    static async searchICD10(query: string, limit: number = 20): Promise<{
+        success: boolean;
+        count: number;
+        data: ICD10Code[];
+    }> {
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            data: ICD10Code[];
+        }>(`${this.baseUrl}/icd10/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    }
+
+    // Get ICD-10 categories
+    static async getICD10Categories(): Promise<{
+        success: boolean;
+        count: number;
+        data: ICD10Category[];
+    }> {
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            data: ICD10Category[];
+        }>(`${this.baseUrl}/icd10/categories`);
+    }
+
+    // Get frequently used ICD-10 codes
+    static async getFrequentICD10(limit: number = 50): Promise<{
+        success: boolean;
+        count: number;
+        data: ICD10Code[];
+    }> {
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            data: ICD10Code[];
+        }>(`${this.baseUrl}/icd10/frequent?limit=${limit}`);
+    }
+
+    // Get diagnosis statistics
+    static async getDiagnosisStatistics(params?: {
+        dateFrom?: string;
+        dateTo?: string;
+        category?: string;
+        doctorId?: string;
+    }): Promise<{
+        success: boolean;
+        data: DiagnosisStatistics;
+    }> {
+        const queryParams = new URLSearchParams();
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    queryParams.append(key, value);
+                }
+            });
+        }
+
+        const url = `${this.baseUrl}/statistics${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        return apiRequest<{
+            success: boolean;
+            data: DiagnosisStatistics;
+        }>(url);
+    }
+
+    // Search diagnoses across the system
+    static async searchDiagnoses(searchParams: {
+        query?: string;
+        patientName?: string;
+        doctorName?: string;
+        icd10Code?: string;
+        status?: string;
+        severity?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        limit?: number;
+        page?: number;
+    }): Promise<{
+        success: boolean;
+        count: number;
+        total: number;
+        page: number;
+        totalPages: number;
+        data: Diagnosis[];
+    }> {
+        const queryParams = new URLSearchParams();
+        Object.entries(searchParams).forEach(([key, value]) => {
+            if (value !== undefined) {
+                queryParams.append(key, value.toString());
+            }
+        });
+
+        return apiRequest<{
+            success: boolean;
+            count: number;
+            total: number;
+            page: number;
+            totalPages: number;
+            data: Diagnosis[];
+        }>(`${this.baseUrl}/search?${queryParams.toString()}`);
+    }
+
+    // Get diagnosis statistics
+    static async getStatistics(): Promise<{
+        success: boolean;
+        data: {
+            totalDiagnoses: number;
+            activeDiagnoses: number;
+            resolvedDiagnoses: number;
+            topDiagnoses: Array<{
+                icd10Code: string;
+                icd10Description: string;
+                count: number;
+            }>;
+            monthlyTrends: Array<{
+                month: string;
+                count: number;
+            }>;
+            statusDistribution: Array<{
+                status: string;
+                count: number;
+                percentage: number;
+            }>;
+        };
+    }> {
+        return apiRequest<{
+            success: boolean;
+            data: {
+                totalDiagnoses: number;
+                activeDiagnoses: number;
+                resolvedDiagnoses: number;
+                topDiagnoses: Array<{
+                    icd10Code: string;
+                    icd10Description: string;
+                    count: number;
+                }>;
+                monthlyTrends: Array<{
+                    month: string;
+                    count: number;
+                }>;
+                statusDistribution: Array<{
+                    status: string;
+                    count: number;
+                    percentage: number;
+                }>;
+            };
+        }>(`${this.baseUrl}/statistics`);
     }
 }
 

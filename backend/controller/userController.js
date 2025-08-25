@@ -240,7 +240,17 @@ export const getAllPatients = catchAsyncErrors(async (req, res, next) => {
             filter.$or = [
                 { firstName: { $regex: searchTerm, $options: 'i' } },
                 { lastName: { $regex: searchTerm, $options: 'i' } },
-                { email: { $regex: searchTerm, $options: 'i' } }
+                { email: { $regex: searchTerm, $options: 'i' } },
+                // Add combined firstName + lastName search
+                {
+                    $expr: {
+                        $regexMatch: {
+                            input: { $concat: ["$firstName", " ", "$lastName"] },
+                            regex: searchTerm,
+                            options: "i"
+                        }
+                    }
+                }
             ];
             console.log('🔍 [getAllPatients] Search term applied:', searchTerm);
         }

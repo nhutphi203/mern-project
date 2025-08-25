@@ -2,6 +2,7 @@
 import React from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import ChatWidget from '../ChatWidget/ChatWidget';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -31,6 +32,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     {children}
                 </div>
             </main>
+
+            {/* AI Chat Widget for authenticated users */}
+            <ChatWidget position="bottom-right" />
         </div>
     );
 };

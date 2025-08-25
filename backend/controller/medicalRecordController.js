@@ -8,6 +8,118 @@ import cloudinary from 'cloudinary';
 // --- HÀM XỬ LÝ MEDICAL RECORD (DỮ LIỆU LÂM SÀNG) ---
 // ===============================================
 
+// Get all medical records with pagination and filters
+export const getAllMedicalRecords = catchAsyncErrors(async (req, res, next) => {
+    const {
+        page = 1,
+        limit = 10,
+        status,
+        priority,
+        patientId,
+        doctorId,
+        dateFrom,
+        dateTo
+    } = req.query;
+
+    const filter = {};
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+    if (patientId) filter.patientId = patientId;
+    if (doctorId) filter.doctorId = doctorId;
+    if (dateFrom || dateTo) {
+        filter.createdAt = {};
+        if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+        if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+
+    const totalRecords = await MedicalRecord.countDocuments(filter);
+    const records = await MedicalRecord.find(filter)
+        .populate('patientId', 'firstName lastName email phone')
+        .populate('doctorId', 'firstName lastName doctorDepartment')
+        .populate('appointmentId', 'appointment_date department')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+    res.status(200).json({
+        success: true,
+        data: records,
+        pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total: totalRecords,
+            pages: Math.ceil(totalRecords / limit)
+        }
+    });
+});
+
+// Get medical records summary for reports
+export const getRecordsSummary = catchAsyncErrors(async (req, res, next) => {
+    const records = await MedicalRecord.find()
+        .populate('patientId', 'firstName lastName')
+        .populate('doctorId', 'firstName lastName')
+        .sort({ updatedAt: -1 })
+        .limit(20);
+
+    const summaryData = records.map(record => ({
+        _id: record._id,
+        patientName: record.patientId ?
+            `${record.patientId.firstName} ${record.patientId.lastName}` :
+            'Unknown Patient',
+        patientId: record.patientId?._id || 'Unknown ID',
+        diagnosis: record.diagnosis || 'No diagnosis',
+        icd10Code: record.icd10Code || '',
+        chiefComplaint: record.symptoms || 'No chief complaint',
+        lastUpdated: record.updatedAt,
+        status: record.status || 'Active',
+        doctor: record.doctorId ?
+            `${record.doctorId.firstName} ${record.doctorId.lastName}` :
+            'Unknown Doctor',
+        priority: record.priority || 'Medium'
+    }));
+
+    res.status(200).json({
+        success: true,
+        data: summaryData
+    });
+});
+
+// Get medical records statistics
+export const getStatistics = catchAsyncErrors(async (req, res, next) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const totalRecords = await MedicalRecord.countDocuments();
+    const activeCases = await MedicalRecord.countDocuments({ status: 'Active' });
+    const resolvedToday = await MedicalRecord.countDocuments({
+        status: 'Resolved',
+        updatedAt: { $gte: today }
+    });
+    const pendingReview = await MedicalRecord.countDocuments({ status: 'Pending' });
+
+    const createdToday = await MedicalRecord.countDocuments({
+        createdAt: { $gte: today }
+    });
+    const updatedToday = await MedicalRecord.countDocuments({
+        updatedAt: { $gte: today }
+    });
+
+    res.status(200).json({
+        success: true,
+        data: {
+            totalRecords,
+            activeCases,
+            resolvedToday,
+            pendingReview,
+            recentActivity: {
+                created: createdToday,
+                updated: updatedToday,
+                reviewed: resolvedToday
+            }
+        }
+    });
+});
+
 // Create new medical record
 export const createMedicalRecord = catchAsyncErrors(async (req, res, next) => {
     const { patientId, doctorId, appointmentId, diagnosis, symptoms, treatmentPlan, notes } = req.body;

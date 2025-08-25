@@ -142,12 +142,12 @@ const PatientRecordDetailPage = () => {
                     // Don't show error toast for appointment - it's optional
                 }
 
-                // Fetch medical record with graceful 404 handling
+                // 🆕 ENHANCED: Use enhanced medical records API
                 try {
-                    const recordResponse = await api.get(`/api/v1/medical-records/appointment/${appointmentId}`);
-                    if (recordResponse.data?.record) {
-                        setMedicalRecord(recordResponse.data.record);
-                        reset(recordResponse.data.record);
+                    const recordResponse = await api.get(`/api/v1/medical-records/enhanced/appointment/${appointmentId}`);
+                    if (recordResponse.data?.success && recordResponse.data?.data) {
+                        setMedicalRecord(recordResponse.data.data);
+                        reset(recordResponse.data.data);
                     }
                 } catch (recordError) {
                     const apiRecordError = recordError as ApiError;
@@ -159,11 +159,11 @@ const PatientRecordDetailPage = () => {
                     }
                 }
 
-                // Fetch patient medical history with graceful handling
+                // 🆕 ENHANCED: Use enhanced medical records API for patient history  
                 try {
-                    const historyResponse = await api.get(`/api/v1/medical-records/patient/${patientId}/history`);
-                    if (historyResponse.data?.records) {
-                        setPatientHistory(historyResponse.data.records);
+                    const historyResponse = await api.get(`/api/v1/medical-records/enhanced/patient/${patientId}/history`);
+                    if (historyResponse.data?.success && historyResponse.data?.data) {
+                        setPatientHistory(historyResponse.data.data);
                     }
                 } catch (error) {
                     console.log("Patient history not available:", error);
@@ -187,9 +187,10 @@ const PatientRecordDetailPage = () => {
             return;
         }
         try {
+            // 🆕 ENHANCED: Use enhanced medical records API endpoints
             const url = medicalRecord
-                ? `/api/v1/medical-records/${medicalRecord._id}`
-                : '/api/v1/medical-records';
+                ? `/api/v1/medical-records/enhanced/${medicalRecord._id}`
+                : '/api/v1/medical-records/enhanced';
 
             const method = medicalRecord ? 'put' : 'post';
 
@@ -200,9 +201,14 @@ const PatientRecordDetailPage = () => {
                 appointmentId,
             });
 
-            setMedicalRecord(response.data.record);
-            setIsEditing(false);
-            toast.success("Đã lưu hồ sơ bệnh án thành công!");
+            // 🆕 ENHANCED: Handle enhanced API response format
+            if (response.data.success && response.data.data) {
+                setMedicalRecord(response.data.data);
+                setIsEditing(false);
+                toast.success("Đã lưu hồ sơ bệnh án thành công!");
+            } else {
+                throw new Error("Invalid response format");
+            }
         } catch (error) {
             console.error("Error saving medical record:", error);
             toast.error("Lỗi khi lưu hồ sơ bệnh án.");

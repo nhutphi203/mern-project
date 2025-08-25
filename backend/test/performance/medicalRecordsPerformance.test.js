@@ -1,7 +1,7 @@
 // Performance Tests cho Medical Records System
-const request = require('supertest');
-const app = require('../../app.js');
-const MedicalRecordSeeder = require('../database/seeders/medicalRecordSeeder');
+import request from 'supertest';
+import app from '../../app.js';
+import MedicalRecordSeeder from '../database/seeders/medicalRecordSeeder.js';
 
 describe('Medical Records Performance Tests - Real API', () => {
     let testData;
@@ -274,7 +274,7 @@ async function getAuthTokens() {
     try {
         // Login doctor for performance tests
         const doctorLoginResponse = await request(app)
-            .post('/api/v1/user/login')
+            .post('/api/v1/users/login')
             .send({
                 email: 'test.doctor@hospital.com',
                 password: 'testpassword123'

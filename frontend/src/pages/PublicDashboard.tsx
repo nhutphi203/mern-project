@@ -1,3 +1,4 @@
+import ChatWidget from '../components/ChatWidget/ChatWidget';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -737,7 +738,8 @@ const DashboardPublic = () => {
                     </div>
                 </div>
             </section>
-            <LiveChatButton isAuthenticated={isAuthenticated} navigate={navigate} />
+            {/* AI Chat Widget for public users */}
+            <ChatWidget position="bottom-right" />
 
             {/* Sử dụng Footer có sẵn */}
             <Footer />

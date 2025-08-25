@@ -398,7 +398,7 @@ const MedicalReports = () => {
                                     <div className="space-y-1">
                                         <div className="flex items-center space-x-3">
                                             <h3 className="font-medium">
-                                                {record.patientName}
+                                                {record.patientName || `Patient ID: ${record.patientId}` || 'Unknown Patient'}
                                             </h3>
                                             <Badge variant={
                                                 record.status === 'Resolved' ? 'default' :
@@ -418,6 +418,9 @@ const MedicalReports = () => {
                                         <p className="text-sm text-muted-foreground">
                                             {record.diagnosis || 'No diagnosis recorded'}
                                         </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Chief Complaint: {record.chiefComplaint || 'Not specified'}
+                                        </p>
                                         {record.icd10Code && (
                                             <Badge variant="outline" className="text-xs">
                                                 {record.icd10Code}
@@ -425,8 +428,11 @@ const MedicalReports = () => {
                                         )}
                                     </div>
                                     <div className="text-right text-sm text-muted-foreground">
-                                        <p>Dr. {record.doctor}</p>
+                                        <p>Dr. {record.doctor || 'Unknown Doctor'}</p>
                                         <p>{format(new Date(record.lastUpdated), 'MMM dd, yyyy')}</p>
+                                        <Button variant="ghost" size="sm" className="mt-2">
+                                            View
+                                        </Button>
                                     </div>
                                 </div>
                             ))

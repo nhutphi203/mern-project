@@ -1,7 +1,8 @@
 {
   "name": "fullstack-app",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test:chatbot": "jest ../test/chatbot-public-dashboard.test.json"
   },
   "devDependencies": {
     "concurrently": "^8.0.0"

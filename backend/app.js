@@ -1,5 +1,8 @@
 // backend/app.js
 
+// QUAN TRỌNG: Load environment variables TRƯỚC KHI import bất cứ thứ gì khác
+import dotenv from "dotenv";
+dotenv.config({ path: "./config/config.env" });
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -20,8 +23,13 @@ import enhancedMedicalRecordRouter from "./router/enhancedMedicalRecordRouter.js
 import fixedMedicalRecordsRouter from "./router/fixedMedicalRecordsRouter.js";
 import { receptionRouter } from './router/receptionRouter.js';
 import serviceCatalogRouter from './router/serviceCatalogRouter.js';
+import diagnosisRouter from './router/diagnosisRouter.js';
+import icd10Router from './router/icd10Router.js';
+import insuranceRouter from './router/insuranceRouter.js';
 import "./config/passport.config.js";
 import encounterRouter from './router/encounterRouter.js';
+import vitalSignsRouter from './router/vitalSigns.routes.js';
+import chatRouter from './routes/chatRoutes.js';
 const app = express();
 
 // TEMPORARILY DISABLED: Rate limiting to debug frontend infinite loop
@@ -138,10 +146,15 @@ app.use("/api/lab", labRouterV1);
 app.use("/api/v1/billing", billingRouter);
 app.use('/api/v1/reception', receptionRouter);
 app.use('/api/v1/encounters', encounterRouter);
+app.use("/api/v1/vital-signs", vitalSignsRouter);
 app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/appointment", appointmentRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/services", serviceCatalogRouter);
+app.use("/api/v1/diagnosis", diagnosisRouter);
+app.use("/api/v1/icd10", icd10Router);
+app.use("/api/v1/insurance", insuranceRouter);
+app.use("/api/v1/chat", chatRouter);
 // Middleware xử lý lỗi phải nằm ở cuối cùng
 app.use((err, req, res, next) => {
     // Nếu là API request, luôn đảm bảo trả về JSON

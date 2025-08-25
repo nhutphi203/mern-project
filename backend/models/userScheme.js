@@ -53,8 +53,8 @@ const userSchema = new mongoose.Schema({
         enum: [
             'Patient', 'Doctor', 'Admin', // Existing roles
             'Receptionist', 'Technician', 'BillingStaff',
-            'LabSupervisor', 'Pharmacist' // Thêm 2 roles mới
-            // New roles
+            'LabTechnician', 'LabSupervisor', 'Pharmacist', 'Nurse'
+            // New roles for comprehensive hospital management
         ],
         required: true,
         default: 'Patient'
@@ -85,7 +85,7 @@ const userSchema = new mongoose.Schema({
     // Social login fields
     authType: {
         type: String,
-        enum: ['traditional', 'google', 'facebook', 'github'],
+        enum: ['traditional', 'google', 'facebook', 'github', 'gmail'],
         default: 'traditional'
     },
     providerId: {
@@ -111,7 +111,7 @@ userSchema.index({ providerId: 1, authType: 1 }, {
     unique: true,
     partialFilterExpression: {
         providerId: { $exists: true },
-        authType: { $in: ['google', 'facebook', 'github'] }
+        authType: { $in: ['google', 'facebook', 'github', 'gmail'] }
     }
 });
 

@@ -359,19 +359,31 @@ router.get('/summary', isAuthenticated, async (req, res, next) => {
         });
 
         // Transform to match frontend interface
-        const summaryData = recentRecords.map(record => ({
-            _id: record._id,
-            patientName: `${record.patientId?.firstName || ''} ${record.patientId?.lastName || ''}`.trim(),
-            patientId: record.patientId?._id,
-            diagnosis: record.diagnoses?.[0]?.icd10Description || 'No diagnosis recorded',
-            icd10Code: record.diagnoses?.[0]?.icd10Code || '',
-            lastUpdated: record.updatedAt,
-            status: record.recordStatus === 'Finalized' ? 'Resolved' :
-                record.recordStatus === 'In Progress' ? 'Under Treatment' : 'Active',
-            doctor: `${record.doctorId?.firstName || ''} ${record.doctorId?.lastName || ''}`.trim(),
-            priority: record.clinicalAssessment?.severity || 'Medium',
-            chiefComplaint: record.clinicalAssessment?.chiefComplaint || ''
-        }));
+        const summaryData = recentRecords.map(record => {
+            // Handle missing patient data gracefully
+            const patientFirstName = record.patientId?.firstName || '';
+            const patientLastName = record.patientId?.lastName || '';
+            let patientName = `${patientFirstName} ${patientLastName}`.trim();
+
+            // If no patient name found, use patient ID or fallback
+            if (!patientName) {
+                patientName = record.patientId?._id ? `Patient ID: ${record.patientId._id}` : 'Unknown Patient';
+            }
+
+            return {
+                _id: record._id,
+                patientName,
+                patientId: record.patientId?._id || record.patientId,
+                diagnosis: record.diagnoses?.[0]?.icd10Description || 'No diagnosis recorded',
+                icd10Code: record.diagnoses?.[0]?.icd10Code || '',
+                lastUpdated: record.updatedAt,
+                status: record.recordStatus === 'Finalized' ? 'Resolved' :
+                    record.recordStatus === 'In Progress' ? 'Under Treatment' : 'Active',
+                doctor: `${record.doctorId?.firstName || ''} ${record.doctorId?.lastName || ''}`.trim() || 'Unknown Doctor',
+                priority: record.clinicalAssessment?.severity || 'Medium',
+                chiefComplaint: record.clinicalAssessment?.chiefComplaint || 'No chief complaint recorded'
+            };
+        });
 
         const stats = {
             totalRecords,

@@ -14,6 +14,7 @@ import {
     FileText,
     Activity,
     ClipboardList,
+    AlertTriangle,
     Heart,
     Stethoscope,
     Pill,
@@ -41,8 +42,16 @@ export const getNavigationItems = (userRole: string): NavigationItem[] => {
             key: 'dashboard',
             label: 'Dashboard',
             icon: <LayoutDashboard className="w-5 h-5" />,
-            path: (role) => role === 'Admin' ? '/admin-dashboard' : '/dashboard',
-            roles: ['Admin', 'Doctor', 'Patient', 'Receptionist', 'Lab Technician', 'BillingStaff', 'LabSupervisor', 'Pharmacist', 'Insurance Staff']
+            path: (role) => {
+                switch (role) {
+                    case 'Admin': return '/admin-dashboard';
+                    case 'Doctor': return '/doctor-dashboard';
+                    case 'Nurse': return '/nurse-dashboard';
+                    case 'Receptionist': return '/reception-dashboard';
+                    default: return '/dashboard';
+                }
+            },
+            roles: ['Admin', 'Doctor', 'Nurse', 'Patient', 'Receptionist', 'Lab Technician', 'BillingStaff', 'LabSupervisor', 'Pharmacist', 'Insurance Staff']
         },
 
         // Patient Management
@@ -313,6 +322,17 @@ export const getRoleDashboardConfig = (role: string) => {
                 { label: 'Patient Records', path: '/medical-records/search', icon: <ClipboardList className="w-5 h-5" /> },
                 { label: 'Medication Orders', path: '/medical-records/cpoe', icon: <Stethoscope className="w-5 h-5" /> },
                 { label: 'Pharmacy Reports', path: '/pharmacy/reports', icon: <FileBarChart className="w-5 h-5" /> }
+            ]
+        },
+        'Nurse': {
+            title: 'Nurse Dashboard',
+            subtitle: 'Patient care and vital signs management',
+            primaryActions: [
+                { label: 'Vital Signs Entry', path: '/nurse-dashboard', icon: <Activity className="w-5 h-5" /> },
+                { label: 'Patient Records', path: '/medical-records/search', icon: <ClipboardList className="w-5 h-5" /> },
+                { label: 'Care Alerts', path: '/nurse/alerts', icon: <AlertTriangle className="w-5 h-5" /> },
+                { label: 'Patient Assignments', path: '/nurse/assignments', icon: <Users className="w-5 h-5" /> },
+                { label: 'Medication Administration', path: '/medical-records/prescriptions', icon: <Pill className="w-5 h-5" /> }
             ]
         },
         'BillingStaff': {

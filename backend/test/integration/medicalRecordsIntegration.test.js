@@ -1,8 +1,8 @@
 // Medical Records API Integration Tests - REAL API Testing
-const request = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../../app.js');
-const MedicalRecordSeeder = require('../database/seeders/medicalRecordSeeder');
+import request from 'supertest';
+import mongoose from 'mongoose';
+import app from '../../app.js';
+import MedicalRecordSeeder from '../database/seeders/medicalRecordSeeder.js';
 
 describe('Medical Records API Integration Tests - REAL API', () => {
     let testData;

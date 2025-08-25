@@ -30,8 +30,7 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     const isConflict = await User.find({
         firstName: doctor_firstName,
         lastName: doctor_lastName,
-        role: "Doctor",
-        doctorDepartment: department
+        role: "Doctor"
     });
 
     if (isConflict.length === 0) {

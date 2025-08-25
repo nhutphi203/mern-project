@@ -347,6 +347,84 @@ const enhancedMedicalRecordSchema = new mongoose.Schema({
         default: 'Draft'
     },
 
+    // Enhanced Workflow System
+    workflowStatus: {
+        currentStep: {
+            type: String,
+            enum: ['draft', 'doctor_review', 'nurse_verify', 'billing_review', 'insurance_process', 'finalized', 'archived'],
+            default: 'draft'
+        },
+        nextSteps: [{
+            step: String,
+            allowedRoles: [String],
+            conditions: mongoose.Schema.Types.Mixed
+        }],
+        stepHistory: [{
+            step: String,
+            previousStep: String,
+            performedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            performedAt: {
+                type: Date,
+                default: Date.now
+            },
+            action: String,
+            comments: String,
+            metadata: mongoose.Schema.Types.Mixed
+        }],
+        workflowType: {
+            type: String,
+            enum: ['standard', 'emergency', 'insurance_required', 'complex_case'],
+            default: 'standard'
+        },
+        priority: {
+            type: String,
+            enum: ['low', 'medium', 'high', 'urgent'],
+            default: 'medium'
+        },
+        blockers: [{
+            type: String,
+            reason: String,
+            blockedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            blockedAt: Date,
+            resolvedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            resolvedAt: Date
+        }],
+        estimatedCompletionTime: Date,
+        actualCompletionTime: Date
+    },
+
+    // Role-based Access Control for Workflow
+    accessControl: {
+        currentOwner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        assignedTo: [{
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            role: String,
+            assignedAt: Date,
+            deadline: Date
+        }],
+        permissions: {
+            canRead: [String], // roles that can read
+            canEdit: [String], // roles that can edit
+            canApprove: [String], // roles that can approve
+            canReject: [String] // roles that can reject
+        }
+    },
+
     // Version control
     currentVersion: {
         type: Number,
@@ -400,6 +478,204 @@ const enhancedMedicalRecordSchema = new mongoose.Schema({
     timestamps: true,
     collection: 'medical_records'
 });
+
+// ===== WORKFLOW METHODS =====
+
+// Workflow transition method
+enhancedMedicalRecordSchema.methods.transitionTo = function(newStep, userId, action = 'advance', comments = '') {
+    const oldStep = this.workflowStatus.currentStep;
+    
+    // Add to step history
+    this.workflowStatus.stepHistory.push({
+        step: newStep,
+        previousStep: oldStep,
+        performedBy: userId,
+        action: action,
+        comments: comments,
+        performedAt: new Date()
+    });
+    
+    // Update current step
+    this.workflowStatus.currentStep = newStep;
+    
+    // Update record status based on workflow step
+    switch(newStep) {
+        case 'draft':
+            this.recordStatus = 'Draft';
+            break;
+        case 'doctor_review':
+        case 'nurse_verify':
+            this.recordStatus = 'In Progress';
+            break;
+        case 'billing_review':
+        case 'insurance_process':
+            this.recordStatus = 'Completed';
+            break;
+        case 'finalized':
+            this.recordStatus = 'Finalized';
+            this.workflowStatus.actualCompletionTime = new Date();
+            break;
+        case 'archived':
+            this.recordStatus = 'Amended';
+            break;
+    }
+    
+    return this.save();
+};
+
+// Check if user can perform action on current step
+enhancedMedicalRecordSchema.methods.canUserPerformAction = function(userId, userRole, action) {
+    // Check if user is assigned to this record
+    const assignment = this.accessControl.assignedTo.find(a => a.user.toString() === userId.toString());
+    if (!assignment) return false;
+    
+    // Check role permissions
+    switch(action) {
+        case 'read':
+            return this.accessControl.permissions.canRead.includes(userRole);
+        case 'edit':
+            return this.accessControl.permissions.canEdit.includes(userRole);
+        case 'approve':
+            return this.accessControl.permissions.canApprove.includes(userRole);
+        case 'reject':
+            return this.accessControl.permissions.canReject.includes(userRole);
+        default:
+            return false;
+    }
+};
+
+// Get next available steps for current user
+enhancedMedicalRecordSchema.methods.getNextStepsForUser = function(userRole) {
+    return this.workflowStatus.nextSteps.filter(step => 
+        step.allowedRoles.includes(userRole)
+    );
+};
+
+// Add workflow blocker
+enhancedMedicalRecordSchema.methods.addBlocker = function(type, reason, userId) {
+    this.workflowStatus.blockers.push({
+        type: type,
+        reason: reason,
+        blockedBy: userId,
+        blockedAt: new Date()
+    });
+    return this.save();
+};
+
+// Resolve workflow blocker
+enhancedMedicalRecordSchema.methods.resolveBlocker = function(blockerId, userId) {
+    const blocker = this.workflowStatus.blockers.id(blockerId);
+    if (blocker) {
+        blocker.resolvedBy = userId;
+        blocker.resolvedAt = new Date();
+    }
+    return this.save();
+};
+
+// Static method to get records by workflow step
+enhancedMedicalRecordSchema.statics.getByWorkflowStep = function(step, userRole = null) {
+    const query = { 'workflowStatus.currentStep': step };
+    if (userRole) {
+        query['accessControl.permissions.canRead'] = userRole;
+    }
+    return this.find(query).populate('patient doctor').populate('accessControl.currentOwner');
+};
+
+// Virtual for workflow completion percentage
+enhancedMedicalRecordSchema.virtual('workflowProgress').get(function() {
+    const steps = ['draft', 'doctor_review', 'nurse_verify', 'billing_review', 'insurance_process', 'finalized'];
+    const currentIndex = steps.indexOf(this.workflowStatus.currentStep);
+    return Math.round(((currentIndex + 1) / steps.length) * 100);
+});
+
+// Pre-save middleware to update workflow next steps
+enhancedMedicalRecordSchema.pre('save', function(next) {
+    if (this.isModified('workflowStatus.currentStep')) {
+        this.updateNextSteps();
+    }
+    next();
+});
+
+// Method to update next steps based on current step and workflow type
+enhancedMedicalRecordSchema.methods.updateNextSteps = function() {
+    const currentStep = this.workflowStatus.currentStep;
+    const workflowType = this.workflowStatus.workflowType;
+    
+    // Clear current next steps
+    this.workflowStatus.nextSteps = [];
+    
+    // Define next steps based on current step
+    switch(currentStep) {
+        case 'draft':
+            this.workflowStatus.nextSteps.push({
+                step: 'doctor_review',
+                allowedRoles: ['doctor', 'admin'],
+                conditions: { hasPatientData: true }
+            });
+            break;
+        
+        case 'doctor_review':
+            this.workflowStatus.nextSteps.push({
+                step: 'nurse_verify',
+                allowedRoles: ['nurse', 'admin'],
+                conditions: { doctorApproved: true }
+            });
+            if (workflowType === 'emergency') {
+                this.workflowStatus.nextSteps.push({
+                    step: 'finalized',
+                    allowedRoles: ['doctor', 'admin'],
+                    conditions: { emergencyOverride: true }
+                });
+            }
+            break;
+        
+        case 'nurse_verify':
+            this.workflowStatus.nextSteps.push({
+                step: 'billing_review',
+                allowedRoles: ['billing_staff', 'admin'],
+                conditions: { nurseVerified: true }
+            });
+            break;
+        
+        case 'billing_review':
+            if (workflowType === 'insurance_required') {
+                this.workflowStatus.nextSteps.push({
+                    step: 'insurance_process',
+                    allowedRoles: ['insurance_staff', 'admin'],
+                    conditions: { billingApproved: true }
+                });
+            } else {
+                this.workflowStatus.nextSteps.push({
+                    step: 'finalized',
+                    allowedRoles: ['billing_staff', 'admin'],
+                    conditions: { billingApproved: true }
+                });
+            }
+            break;
+        
+        case 'insurance_process':
+            this.workflowStatus.nextSteps.push({
+                step: 'finalized',
+                allowedRoles: ['insurance_staff', 'admin'],
+                conditions: { insuranceApproved: true }
+            });
+            break;
+        
+        case 'finalized':
+            this.workflowStatus.nextSteps.push({
+                step: 'archived',
+                allowedRoles: ['admin'],
+                conditions: { retentionPeriodExpired: true }
+            });
+            break;
+    }
+};
+
+// Index for efficient workflow queries
+enhancedMedicalRecordSchema.index({ 'workflowStatus.currentStep': 1 });
+enhancedMedicalRecordSchema.index({ 'accessControl.assignedTo.user': 1 });
+enhancedMedicalRecordSchema.index({ 'workflowStatus.priority': 1 });
+enhancedMedicalRecordSchema.index({ 'workflowStatus.estimatedCompletionTime': 1 });
 
 // Indexes for performance
 enhancedMedicalRecordSchema.index({ patientId: 1, createdAt: -1 });
@@ -473,3 +749,4 @@ enhancedMedicalRecordSchema.pre('save', function (next) {
 });
 
 export const EnhancedMedicalRecord = mongoose.model("EnhancedMedicalRecord", enhancedMedicalRecordSchema);
+export default EnhancedMedicalRecord;

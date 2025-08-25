@@ -15,6 +15,15 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "jest --testPathPatterns=e2e --runInBand --verbose",
+    "test:e2e:auth": "jest auth.e2e.test.js --runInBand",
+    "test:e2e:appointments": "jest appointments.e2e.test.js --runInBand",
+    "test:e2e:patients": "jest test/patients.e2e.test.js --runInBand",
+    "test:e2e:medical-records": "jest medical-records.e2e.test.js --runInBand",
+    "test:e2e:lab": "jest lab.e2e.test.js --runInBand",
+    "test:e2e:billing": "jest billing.e2e.test.js --runInBand",
+    "test:e2e:vital-signs": "jest vital-signs.e2e.test.js --runInBand",
+    "test:e2e:full-workflow": "jest e2e.full-workflow.test.js --runInBand --timeout=180000",
     "test:integration": "jest --testPathPattern=integration",
     "test:performance": "jest --testPathPattern=performance",
     "test:security": "jest --testPathPattern=security",
@@ -22,6 +31,7 @@
     "test:all": "jest --runInBand",
     "test:medical-records": "jest --testPathPattern=medical",
     "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:chatbot": "jest test/chatbot-public-dashboard.test.js",
     "seed:test-data": "node -e \"require('./test/database/seeders/medicalRecordSeeder').seedTestData()\"",
     "cleanup:test-data": "node -e \"require('./test/database/seeders/medicalRecordSeeder').cleanupTestData()\""
   },
@@ -29,6 +39,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.11.0",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
@@ -55,9 +66,14 @@
     "validator": "^13.12.0"
   },
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
+    "@babel/preset-env": "^7.28.3",
+    "@faker-js/faker": "^10.0.0",
     "@types/jest": "^30.0.0",
+    "bcryptjs": "^3.0.2",
     "colors": "^1.4.0",
     "jest": "^30.0.5",
+    "mongodb-memory-server": "^10.2.0",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
