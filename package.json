@@ -1,0 +1,13 @@
+{
+  "name": "fullstack-app",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test:chatbot": "jest ../test/chatbot-public-dashboard.test.json"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.83"
+  }
+}

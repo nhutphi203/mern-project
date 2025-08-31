@@ -1,0 +1,17 @@
+{
+  "doctorToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGE5NjE0ODhkNTAxMDI2MGRlMjU3NGYiLCJpYXQiOjE3NTU5MzExNzYsImV4cCI6MTc1NjUzNTk3Nn0.3rzTTSiAxI4oF-73vJ8mH-B4uzzAvyq1r46v3cjazqE",
+  "patientToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGE5NjE0ODhkNTAxMDI2MGRlMjU3NTMiLCJpYXQiOjE3NTU5MzExNzYsImV4cCI6MTc1NjUzNTk3Nn0.RpMfpXUKUObzzV691nTZRd26kjqAIGdMP07XRFZpjQg",
+  "doctor": {
+    "id": "68a961488d5010260de2574f",
+    "name": "Test Doctor",
+    "email": "test.doctor@hospital.com",
+    "role": "Doctor"
+  },
+  "patient": {
+    "id": "68a961488d5010260de25753",
+    "name": "Test Patient",
+    "email": "test.patient@hospital.com",
+    "role": "Patient"
+  },
+  "generated": "2025-08-23T06:39:36.939Z"
+}

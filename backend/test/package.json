@@ -1,0 +1,65 @@
+{
+    "name": "medical-records-system-tests",
+    "version": "1.0.0",
+    "description": "Comprehensive test suite for Medical Records System",
+    "scripts": {
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "test:integration": "jest --testPathPattern=integration",
+        "test:performance": "jest --testPathPattern=performance",
+        "test:security": "jest --testPathPattern=security",
+        "test:integrity": "jest --testPathPattern=integrity",
+        "test:all": "jest --runInBand",
+        "test:medical-records": "jest --testPathPattern=medical",
+        "test:ci": "jest --ci --coverage --watchAll=false",
+        "seed:test-data": "node test/database/seeders/medicalRecordSeeder.js",
+        "cleanup:test-data": "node -e \"require('./test/database/seeders/medicalRecordSeeder').cleanupTestData()\""
+    },
+    "jest": {
+        "testEnvironment": "node",
+        "setupFilesAfterEnv": [
+            "<rootDir>/test/setup.js"
+        ],
+        "testMatch": [
+            "**/test/**/*.test.js"
+        ],
+        "collectCoverageFrom": [
+            "controller/**/*.js",
+            "models/**/*.js",
+            "router/**/*.js",
+            "middlewares/**/*.js",
+            "!**/node_modules/**",
+            "!**/test/**"
+        ],
+        "coverageReporters": [
+            "text",
+            "lcov",
+            "html"
+        ],
+        "coverageThreshold": {
+            "global": {
+                "branches": 80,
+                "functions": 80,
+                "lines": 80,
+                "statements": 80
+            }
+        },
+        "testTimeout": 30000,
+        "verbose": true,
+        "forceExit": true,
+        "detectOpenHandles": true
+    },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "supertest": "^6.3.3",
+        "@types/jest": "^29.5.5"
+    },
+    "dependencies": {
+        "mongoose": "^7.5.0",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "bcryptjs": "^2.4.3",
+        "dotenv": "^16.3.1"
+    }
+}

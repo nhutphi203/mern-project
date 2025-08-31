@@ -1,0 +1,142 @@
+[
+    {
+        "id": 1,
+        "user_question": "Giờ làm việc của bệnh viện là gì?",
+        "expected_response": "Bot trả về giờ làm việc, ví dụ: 'Giờ làm việc: 8:00 AM - 8:00 PM...'",
+        "test_category": "tra cứu thông tin",
+        "priority": "High"
+    },
+    {
+        "id": 2,
+        "user_question": "Tôi muốn đặt lịch khám",
+        "expected_response": "Bot hướng dẫn đăng nhập/đăng ký để đặt lịch, hiển thị nút Đăng nhập/Đăng ký.",
+        "test_category": "hướng dẫn quy trình",
+        "priority": "High"
+    },
+    {
+        "id": 3,
+        "user_question": "Bệnh viện có những chuyên khoa nào?",
+        "expected_response": "Bot trả về danh sách chuyên khoa chính.",
+        "test_category": "tra cứu thông tin",
+        "priority": "High"
+    },
+    {
+        "id": 4,
+        "user_question": "Bảo hiểm nào được chấp nhận?",
+        "expected_response": "Bot trả về danh sách các hãng bảo hiểm.",
+        "test_category": "FAQ",
+        "priority": "Medium"
+    },
+    {
+        "id": 5,
+        "user_question": "Địa chỉ bệnh viện ở đâu?",
+        "expected_response": "Bot trả về địa chỉ, số điện thoại, website bệnh viện.",
+        "test_category": "tra cứu thông tin",
+        "priority": "High"
+    },
+    {
+        "id": 6,
+        "user_question": "kham benh gio nao",
+        "expected_response": "Bot nhận diện đúng ý định và trả về giờ làm việc.",
+        "test_category": "tra cứu thông tin",
+        "priority": "Medium"
+    },
+    {
+        "id": 7,
+        "user_question": "Tôi muốn xem kết quả xét nghiệm của tôi",
+        "expected_response": "Bot yêu cầu đăng nhập để truy cập thông tin cá nhân, hiển thị nút Đăng nhập/Đăng ký.",
+        "test_category": "bảo mật",
+        "priority": "High"
+    },
+    {
+        "id": 8,
+        "user_question": "Số điện thoại cấp cứu là gì?",
+        "expected_response": "Bot trả về số điện thoại cấp cứu, hướng dẫn gọi 911 hoặc liên hệ phòng cấp cứu.",
+        "test_category": "hỗ trợ khẩn cấp",
+        "priority": "High"
+    },
+    {
+        "id": 9,
+        "user_question": "Tôi muốn xem điểm của mình",
+        "expected_response": "Bot trả lời ngoài phạm vi hỗ trợ, từ chối trả lời hoặc hướng dẫn chung.",
+        "test_category": "ngoài ngữ cảnh",
+        "priority": "Medium"
+    },
+    {
+        "id": 10,
+        "user_question": "abcxyz123",
+        "expected_response": "Bot trả lời chung chung hoặc yêu cầu làm rõ câu hỏi.",
+        "test_category": "mơ hồ",
+        "priority": "Low"
+    },
+    {
+        "id": 11,
+        "user_question": "Tôi muốn xem báo cáo hệ thống",
+        "expected_response": "Bot yêu cầu đăng nhập để truy cập thông tin này, hiển thị nút Đăng nhập/Đăng ký.",
+        "test_category": "bảo mật",
+        "priority": "High"
+    },
+    {
+        "id": 12,
+        "user_question": "Bệnh viện có bao nhiêu bác sĩ?",
+        "expected_response": "Bot trả về số lượng bác sĩ nếu backend có dữ liệu.",
+        "test_category": "tra cứu thông tin",
+        "priority": "Medium"
+    },
+    {
+        "id": 13,
+        "user_question": "Tôi muốn biết các dịch vụ mới nhất",
+        "expected_response": "Bot trả về danh sách dịch vụ mới nhất từ backend nếu có.",
+        "test_category": "tra cứu thông tin",
+        "priority": "Medium"
+    },
+    {
+        "id": 14,
+        "user_question": "Tôi muốn liên hệ bác sĩ Trần",
+        "expected_response": "Bot chỉ trả về thông tin tổng đài, không trả về thông tin cá nhân bác sĩ.",
+        "test_category": "bảo mật",
+        "priority": "High"
+    },
+    {
+        "id": 15,
+        "user_question": "Tôi muốn xem lịch sử khám bệnh của tôi",
+        "expected_response": "Bot yêu cầu đăng nhập để truy cập thông tin cá nhân, hiển thị nút Đăng nhập/Đăng ký.",
+        "test_category": "bảo mật",
+        "priority": "High"
+    },
+    {
+        "id": 16,
+        "user_question": "Tôi muốn đổi mật khẩu",
+        "expected_response": "Bot trả lời ngoài phạm vi hỗ trợ, hướng dẫn đăng nhập hoặc liên hệ hỗ trợ.",
+        "test_category": "ngoài ngữ cảnh",
+        "priority": "Medium"
+    },
+    {
+        "id": 17,
+        "user_question": "Tôi bị đau ngực, khó thở, phải làm sao?",
+        "expected_response": "Bot hướng dẫn gọi cấp cứu 911 ngay lập tức và liên hệ phòng cấp cứu.",
+        "test_category": "hỗ trợ khẩn cấp",
+        "priority": "High"
+    },
+    {
+        "id": 18,
+        "user_question": "Bệnh viện có wifi miễn phí không?",
+        "expected_response": "Bot trả lời về tiện ích bệnh viện hoặc từ chối nếu không có thông tin.",
+        "test_category": "FAQ",
+        "priority": "Low"
+    },
+    {
+        "id": 19,
+        "user_question": "Thời tiết hôm nay thế nào?",
+        "expected_response": "Bot trả lời ngoài phạm vi hỗ trợ, từ chối trả lời hoặc hướng dẫn chung.",
+        "test_category": "ngoài ngữ cảnh",
+        "priority": "Low"
+    },
+    {
+        "id": 20,
+        "user_question": "Tôi muốn thanh toán viện phí như thế nào?",
+        "expected_response": "Bot hướng dẫn các phương thức thanh toán viện phí (online, tại quầy, chuyển khoản, ...)",
+        "test_category": "hướng dẫn quy trình",
+        "priority": "High"
+    }
+]
